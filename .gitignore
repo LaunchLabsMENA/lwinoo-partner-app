@@ -1,0 +1,76 @@
+# macOS
+.DS_Store
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-error.log
+.yarn/
+
+# Ruby / Bundler
+/vendor/bundle/
+.bundle/
+
+# iOS / Xcode
+**/Pods/
+build/
+DerivedData/
+*.hmap
+*.ipa
+*.xcuserstate
+*.xcscmblueprint
+xcuserdata/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+!default.pbxuser
+!default.mode1v3
+!default.mode2v3
+!default.perspectivev3
+ios/.xcode.env.local
+
+# Android / Gradle
+.gradle/
+.kotlin/
+.cxx/
+local.properties
+captures/
+*.iml
+*.hprof
+*.apk
+*.aab
+.idea/
+
+# React Native / Metro
+.metro-health-check*
+*.jsbundle
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots
+**/fastlane/test_output
+
+# Testing
+coverage/
+/test-results/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.p8
+*.p12
+*.mobileprovision
+*.jks
+*.keystore
+!debug.keystore
+keystore.properties
+
+# Logs and temp files
+*.log
+*.tmp
+*.tsbuildinfo
+
+# Editors
+.vscode/
