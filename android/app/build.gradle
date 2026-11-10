@@ -77,9 +77,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.lwinoofreelancerapp"
+    namespace "com.lwinoo.freelancer"
     defaultConfig {
-        applicationId "com.lwinoofreelancerapp"
+        applicationId "com.lwinoo.freelancer"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

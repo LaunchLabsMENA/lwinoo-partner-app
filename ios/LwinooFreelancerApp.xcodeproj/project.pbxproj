@@ -9,23 +9,41 @@
 /* Begin PBXBuildFile section */
 		0C80B921A6F3F58F76C31292 /* libPods-LwinooFreelancerApp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-LwinooFreelancerApp.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		17A43D77E2BE69C874FF7934 /* Tajawal-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B3ADFACBB60C80C9EB485CCE /* Tajawal-Bold.ttf */; };
+		29907B3B5A7AE59608BC7249 /* DMSans-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AB0C136E55C4CB132AE580CC /* DMSans-SemiBold.ttf */; };
+		2E15FCFB48369704A69420A3 /* DMSans-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0E9A8B2A1FF50D22E3234FE2 /* DMSans-Medium.ttf */; };
+		385F392A7D29A07DD421D005 /* Tajawal-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7A136F9AA3789012DFE6B8E1 /* Tajawal-Regular.ttf */; };
 		639FC7EF3CF268073FE8B8F8 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		761780EF2CA45674006654EF /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EE2CA45674006654EF /* SceneDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		9C408D65B7F3C4A9DFD9AA97 /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 987CD3D60305C126285BC630 /* DMSans-Regular.ttf */; };
+		9CA358A868B4C2F894B884E6 /* PlayfairDisplay-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1123B9FEB4AED84D56A209E4 /* PlayfairDisplay-SemiBold.ttf */; };
+		BDBDD9FFCFFE91ADE424A502 /* DMSans-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = D92763EA95E3F829C08C8635 /* DMSans-Bold.ttf */; };
+		EC7BDF1B078B30E77013A699 /* Tajawal-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 14FB75B7D98022AECE5EF137 /* Tajawal-Medium.ttf */; };
+		F026BAE223BAEF0ACADA845F /* PlayfairDisplay-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = DB031889AA09AD48F1F0F766 /* PlayfairDisplay-Bold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0E9A8B2A1FF50D22E3234FE2 /* DMSans-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DMSans-Medium.ttf"; path = "../assets/fonts/DMSans-Medium.ttf"; sourceTree = "<group>"; };
+		1123B9FEB4AED84D56A209E4 /* PlayfairDisplay-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "PlayfairDisplay-SemiBold.ttf"; path = "../assets/fonts/PlayfairDisplay-SemiBold.ttf"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* LwinooFreelancerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LwinooFreelancerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = LwinooFreelancerApp/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = LwinooFreelancerApp/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = LwinooFreelancerApp/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		14FB75B7D98022AECE5EF137 /* Tajawal-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Tajawal-Medium.ttf"; path = "../assets/fonts/Tajawal-Medium.ttf"; sourceTree = "<group>"; };
 		3B4392A12AC88292D35C810B /* Pods-LwinooFreelancerApp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LwinooFreelancerApp.debug.xcconfig"; path = "Target Support Files/Pods-LwinooFreelancerApp/Pods-LwinooFreelancerApp.debug.xcconfig"; sourceTree = "<group>"; };
 		5709B34CF0A7D63546082F79 /* Pods-LwinooFreelancerApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LwinooFreelancerApp.release.xcconfig"; path = "Target Support Files/Pods-LwinooFreelancerApp/Pods-LwinooFreelancerApp.release.xcconfig"; sourceTree = "<group>"; };
 		5DCACB8F33CDC322A6C60F78 /* libPods-LwinooFreelancerApp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-LwinooFreelancerApp.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = LwinooFreelancerApp/AppDelegate.swift; sourceTree = "<group>"; };
 		761780EE2CA45674006654EF /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SceneDelegate.swift; path = LwinooFreelancerApp/SceneDelegate.swift; sourceTree = "<group>"; };
+		7A136F9AA3789012DFE6B8E1 /* Tajawal-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Tajawal-Regular.ttf"; path = "../assets/fonts/Tajawal-Regular.ttf"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = LwinooFreelancerApp/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		987CD3D60305C126285BC630 /* DMSans-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DMSans-Regular.ttf"; path = "../assets/fonts/DMSans-Regular.ttf"; sourceTree = "<group>"; };
+		AB0C136E55C4CB132AE580CC /* DMSans-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DMSans-SemiBold.ttf"; path = "../assets/fonts/DMSans-SemiBold.ttf"; sourceTree = "<group>"; };
+		B3ADFACBB60C80C9EB485CCE /* Tajawal-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Tajawal-Bold.ttf"; path = "../assets/fonts/Tajawal-Bold.ttf"; sourceTree = "<group>"; };
+		D92763EA95E3F829C08C8635 /* DMSans-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DMSans-Bold.ttf"; path = "../assets/fonts/DMSans-Bold.ttf"; sourceTree = "<group>"; };
+		DB031889AA09AD48F1F0F766 /* PlayfairDisplay-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "PlayfairDisplay-Bold.ttf"; path = "../assets/fonts/PlayfairDisplay-Bold.ttf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -74,6 +92,7 @@
 			isa = PBXGroup;
 			children = (
 				13B07FAE1A68108700A75B9A /* LwinooFreelancerApp */,
+				BFD6176584091FBE6DB9962B /* Fonts */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
@@ -99,6 +118,22 @@
 				5709B34CF0A7D63546082F79 /* Pods-LwinooFreelancerApp.release.xcconfig */,
 			);
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		BFD6176584091FBE6DB9962B /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				D92763EA95E3F829C08C8635 /* DMSans-Bold.ttf */,
+				0E9A8B2A1FF50D22E3234FE2 /* DMSans-Medium.ttf */,
+				987CD3D60305C126285BC630 /* DMSans-Regular.ttf */,
+				AB0C136E55C4CB132AE580CC /* DMSans-SemiBold.ttf */,
+				DB031889AA09AD48F1F0F766 /* PlayfairDisplay-Bold.ttf */,
+				1123B9FEB4AED84D56A209E4 /* PlayfairDisplay-SemiBold.ttf */,
+				B3ADFACBB60C80C9EB485CCE /* Tajawal-Bold.ttf */,
+				14FB75B7D98022AECE5EF137 /* Tajawal-Medium.ttf */,
+				7A136F9AA3789012DFE6B8E1 /* Tajawal-Regular.ttf */,
+			);
+			name = Fonts;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -162,6 +197,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
+				BDBDD9FFCFFE91ADE424A502 /* DMSans-Bold.ttf in Resources */,
+				2E15FCFB48369704A69420A3 /* DMSans-Medium.ttf in Resources */,
+				9C408D65B7F3C4A9DFD9AA97 /* DMSans-Regular.ttf in Resources */,
+				29907B3B5A7AE59608BC7249 /* DMSans-SemiBold.ttf in Resources */,
+				F026BAE223BAEF0ACADA845F /* PlayfairDisplay-Bold.ttf in Resources */,
+				9CA358A868B4C2F894B884E6 /* PlayfairDisplay-SemiBold.ttf in Resources */,
+				17A43D77E2BE69C874FF7934 /* Tajawal-Bold.ttf in Resources */,
+				EC7BDF1B078B30E77013A699 /* Tajawal-Medium.ttf in Resources */,
+				385F392A7D29A07DD421D005 /* Tajawal-Regular.ttf in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				639FC7EF3CF268073FE8B8F8 /* PrivacyInfo.xcprivacy in Resources */,
 			);
@@ -277,7 +321,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.lwinoo.freelancer;
 				PRODUCT_NAME = LwinooFreelancerApp;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -306,7 +350,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.lwinoo.freelancer;
 				PRODUCT_NAME = LwinooFreelancerApp;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_VERSION = 5.0;

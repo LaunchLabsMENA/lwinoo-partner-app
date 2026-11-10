@@ -1,4 +1,4 @@
-package com.lwinoofreelancerapp
+package com.lwinoo.freelancer
 
 import android.app.Application
 import com.facebook.react.PackageList
