@@ -1,9 +1,12 @@
 import React, { FC } from 'react';
-import { Image, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
-import { PrimaryButton, T, useComingSoon } from '../../components/ui';
+import { PrimaryButton, T } from '../../components/ui';
 import { useLanguage } from '../../i18n';
+import { useAppNavigation } from '../../navigation/types';
+import { useAppDispatch } from '../../store/hooks';
+import { logout } from '../../store/thunks';
 import { COLORS } from '../../theme';
 
 const ART_ASPECT = 174 / 132;
@@ -36,7 +39,8 @@ export const UnderReviewScreen: FC = () => {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const { t } = useLanguage();
-  const comingSoon = useComingSoon();
+  const navigation = useAppNavigation();
+  const dispatch = useAppDispatch();
   const artWidth = width * 0.68;
 
   return (
@@ -52,9 +56,17 @@ export const UnderReviewScreen: FC = () => {
         <T style={styles.subtitle}>{t('review.subtitle')}</T>
         <PrimaryButton
           label={t('review.explore')}
-          onPress={comingSoon}
+          onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Main' }] })}
           style={styles.button}
         />
+        <TouchableOpacity
+          accessibilityRole="button"
+          hitSlop={10}
+          onPress={() => dispatch(logout())}
+          style={styles.logout}
+        >
+          <T style={styles.logoutLabel}>{t('review.logout')}</T>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -66,4 +78,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 30, lineHeight: 39, textAlign: 'center', marginTop: 28 },
   subtitle: { fontSize: 13, color: COLORS.muted, textAlign: 'center', marginTop: 10 },
   button: { alignSelf: 'stretch', marginTop: 20 },
+  logout: { marginTop: 16, padding: 8 },
+  logoutLabel: { fontSize: 14, color: COLORS.rose },
 });

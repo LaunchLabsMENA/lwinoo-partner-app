@@ -3,6 +3,8 @@ import { Image, StatusBar, StyleSheet, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Video from 'react-native-video';
 import { useAppNavigation } from '../../navigation/types';
+import { useAppDispatch } from '../../store/hooks';
+import { bootstrap, BootRoute } from '../../store/thunks';
 import { COLORS } from '../../theme';
 
 const SPLASH_VIDEO_SEEN_KEY = 'splash_video_seen';
@@ -17,14 +19,22 @@ export const SplashScreen: FC = () => {
   const navigation = useAppNavigation();
   const done = useRef(false);
   const [mode, setMode] = useState<Mode>('loading');
+  const dispatch = useAppDispatch();
+  const boot = useRef<Promise<BootRoute> | null>(null);
 
-  const finish = useCallback(() => {
+  const finish = useCallback(async () => {
     if (done.current) {
       return;
     }
     done.current = true;
-    navigation.replace('Login');
+    navigation.replace((await boot.current) ?? 'Login');
   }, [navigation]);
+
+  useEffect(() => {
+    boot.current = dispatch(bootstrap())
+      .unwrap()
+      .catch(() => 'Login' as const);
+  }, [dispatch]);
 
   useEffect(() => {
     let cancelled = false;

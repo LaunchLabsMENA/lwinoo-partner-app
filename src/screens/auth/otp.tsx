@@ -12,11 +12,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenHeader } from '../../components/setup-scaffold';
 import { PrimaryButton, T } from '../../components/ui';
 import { useLanguage } from '../../i18n';
+import { errorMessage, retryAfterSeconds } from '../../api/errors';
+import { routeFor } from '../../navigation/route-for';
 import { RootStackParamList, useAppNavigation } from '../../navigation/types';
+import { useSetup } from '../../state/setup';
+import { useAppDispatch } from '../../store/hooks';
+import { requestOtp, verifyOtp } from '../../store/thunks';
 import { COLORS } from '../../theme';
 
 const CODE_LENGTH = 4;
-const RESEND_SECONDS = 30;
+const RESEND_SECONDS = 60;
 
 export const OtpScreen: FC = () => {
   const navigation = useAppNavigation();
@@ -27,6 +32,10 @@ export const OtpScreen: FC = () => {
   const [code, setCode] = useState('');
   const [seconds, setSeconds] = useState(RESEND_SECONDS);
   const [showError, setShowError] = useState(false);
+  const [failure, setFailure] = useState('');
+  const [loading, setLoading] = useState(false);
+  const dispatch = useAppDispatch();
+  const { load } = useSetup();
   const isEmail = params.channel === 'email';
 
   useEffect(() => {
@@ -40,14 +49,46 @@ export const OtpScreen: FC = () => {
   const onChange = (value: string) => {
     setCode(value.replace(/\D/g, '').slice(0, CODE_LENGTH));
     setShowError(false);
+    setFailure('');
   };
 
-  const onVerify = () => {
+  const onVerify = async () => {
+    if (loading) {
+      return;
+    }
     if (code.length !== CODE_LENGTH) {
       setShowError(true);
       return;
     }
-    navigation.navigate('SetupPartner');
+    setLoading(true);
+    try {
+      const session = await dispatch(
+        verifyOtp({ method: params.channel, target: params.target, code }),
+      ).unwrap();
+      load(session.user.onboarding);
+      navigation.reset({ index: 0, routes: [{ name: routeFor(session.user) }] });
+    } catch (problem) {
+      setCode('');
+      setFailure(errorMessage(problem, t));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onResend = async () => {
+    setFailure('');
+    try {
+      const sent = await dispatch(
+        requestOtp({ method: params.channel, target: params.target }),
+      ).unwrap();
+      setSeconds(sent.resendAfterSeconds);
+    } catch (problem) {
+      const wait = retryAfterSeconds(problem);
+      if (wait) {
+        setSeconds(Math.min(wait, RESEND_SECONDS));
+      }
+      setFailure(errorMessage(problem, t));
+    }
   };
 
   return (
@@ -55,7 +96,7 @@ export const OtpScreen: FC = () => {
       style={[styles.root, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScreenHeader title={t('otp.header')} />
+      <ScreenHeader title={t('otp.header')} showLanguage />
       <View style={styles.body}>
         <T heading style={styles.title}>
           {t(isEmail ? 'otp.titleEmail' : 'otp.titlePhone')}
@@ -86,8 +127,14 @@ export const OtpScreen: FC = () => {
           />
         </Pressable>
         {showError ? <T style={styles.error}>{t('otp.error')}</T> : null}
+        {failure ? <T style={styles.error}>{failure}</T> : null}
 
-        <PrimaryButton label={t('otp.verify')} onPress={onVerify} style={styles.verify} />
+        <PrimaryButton
+          label={t('otp.verify')}
+          onPress={onVerify}
+          loading={loading}
+          style={styles.verify}
+        />
 
         <View style={[styles.resendRow, { flexDirection: row }]}>
           <T style={styles.resendHint}>{t('otp.noCode')}</T>
@@ -99,7 +146,7 @@ export const OtpScreen: FC = () => {
             <Pressable
               accessibilityRole="button"
               hitSlop={10}
-              onPress={() => setSeconds(RESEND_SECONDS)}
+              onPress={onResend}
             >
               <T weight="bold" style={styles.resend}>
                 {t('otp.resend')}

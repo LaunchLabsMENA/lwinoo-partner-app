@@ -11,6 +11,10 @@ export const COLORS = {
   activeFill: '#EBF6EE',
   activeBorder: '#3F7D58',
   error: '#B3261E',
+  danger: '#DC524B',
+  gold: '#E2BE4E',
+  slotOngoing: '#E4E2E0',
+  slotBlocked: '#EEEDEB',
   splash: '#D9A7AD',
 };
 

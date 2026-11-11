@@ -6,6 +6,7 @@ import { DAYS } from '../../data/setup';
 import { useLanguage } from '../../i18n';
 import { useAppNavigation } from '../../navigation/types';
 import { toggleItem, useSetup } from '../../state/setup';
+import { useDraftSync } from '../../state/use-draft';
 import { COLORS } from '../../theme';
 
 const TimeField: FC<{
@@ -27,6 +28,7 @@ const TimeField: FC<{
 
 export const ScheduleScreen: FC = () => {
   const navigation = useAppNavigation();
+  const saveDraft = useDraftSync();
   const { t, row } = useLanguage();
   const { form, update } = useSetup();
 
@@ -38,7 +40,10 @@ export const ScheduleScreen: FC = () => {
       footer={
         <PrimaryButton
           label={t('common.continue')}
-          onPress={() => navigation.navigate('SetupArea')}
+          onPress={() => {
+            saveDraft();
+            navigation.navigate('SetupArea');
+          }}
         />
       }
     >

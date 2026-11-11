@@ -7,10 +7,12 @@ import { PARTNER_TYPES } from '../../data/setup';
 import { useLanguage } from '../../i18n';
 import { useAppNavigation } from '../../navigation/types';
 import { useSetup } from '../../state/setup';
+import { useDraftSync } from '../../state/use-draft';
 import { COLORS } from '../../theme';
 
 export const PartnerScreen: FC = () => {
   const navigation = useAppNavigation();
+  const saveDraft = useDraftSync();
   const { t, row, isRTL } = useLanguage();
   const { form, update } = useSetup();
 
@@ -23,7 +25,10 @@ export const PartnerScreen: FC = () => {
       footer={
         <PrimaryButton
           label={t('common.continue')}
-          onPress={() => navigation.navigate('SetupProfile')}
+          onPress={() => {
+            saveDraft();
+            navigation.navigate('SetupProfile');
+          }}
           icon={
             <View style={isRTL ? styles.flipped : undefined}>
               <ArrowRightIcon size={20} color={COLORS.white} />

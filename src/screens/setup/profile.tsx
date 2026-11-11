@@ -1,6 +1,7 @@
-import React, { FC } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { CameraIcon, CheckIcon, PlusIcon, ShieldIcon } from '../../components/icons';
+import React, { FC, useState } from 'react';
+import { ActivityIndicator, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { CameraIcon, PlusIcon, ShieldIcon } from '../../components/icons';
+import { PickedImage, usePhotoPicker } from '../../components/photo-picker';
 import { SetupScaffold } from '../../components/setup-scaffold';
 import {
   Chip,
@@ -12,15 +13,44 @@ import {
   T,
 } from '../../components/ui';
 import { ADDRESSES, CITIES, SERVICE_CATEGORIES, TEAM_SIZES } from '../../data/setup';
+import { errorMessage } from '../../api/errors';
 import { useLanguage } from '../../i18n';
 import { useAppNavigation } from '../../navigation/types';
 import { toggleItem, useSetup } from '../../state/setup';
+import { useDraftSync } from '../../state/use-draft';
+import { useAppDispatch } from '../../store/hooks';
+import { uploadPicture } from '../../store/thunks';
 import { COLORS } from '../../theme';
 
 export const ProfileScreen: FC = () => {
   const navigation = useAppNavigation();
+  const saveDraft = useDraftSync();
   const { t, row } = useLanguage();
   const { form, update } = useSetup();
+  const pickPhoto = usePhotoPicker();
+  const dispatch = useAppDispatch();
+  const [busy, setBusy] = useState<'photo' | 'cover' | null>(null);
+  const [failure, setFailure] = useState('');
+
+  const upload = async (purpose: 'photo' | 'cover', picked: PickedImage) => {
+    setBusy(purpose);
+    try {
+      const url = await dispatch(uploadPicture({ ...picked, purpose })).unwrap();
+      update(purpose === 'photo' ? { photoUrl: url } : { coverUrl: url });
+    } catch (problem) {
+      setFailure(errorMessage(problem, t));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const choose = (purpose: 'photo' | 'cover') => {
+    if (busy) {
+      return;
+    }
+    setFailure('');
+    pickPhoto(picked => upload(purpose, picked));
+  };
 
   return (
     <SetupScaffold
@@ -30,7 +60,10 @@ export const ProfileScreen: FC = () => {
       footer={
         <PrimaryButton
           label={t('common.continue')}
-          onPress={() => navigation.navigate('SetupSchedule')}
+          onPress={() => {
+            saveDraft();
+            navigation.navigate('SetupSchedule');
+          }}
         />
       }
     >
@@ -39,10 +72,16 @@ export const ProfileScreen: FC = () => {
           activeOpacity={0.8}
           accessibilityRole="button"
           accessibilityLabel={t('profile.addPhoto')}
-          onPress={() => update({ photoAdded: !form.photoAdded })}
-          style={[styles.photo, form.photoAdded && styles.addedFill]}
+          onPress={() => choose('photo')}
+          style={[styles.photo, form.photoUrl && styles.pictureAdded]}
         >
-          {form.photoAdded ? <CheckIcon size={30} color={COLORS.white} /> : <CameraIcon size={30} />}
+          {busy === 'photo' ? (
+            <ActivityIndicator color={COLORS.rose} />
+          ) : form.photoUrl ? (
+            <Image source={{ uri: form.photoUrl }} style={styles.photoImage} />
+          ) : (
+            <CameraIcon size={30} />
+          )}
           <View style={styles.plus}>
             <PlusIcon size={14} color={COLORS.white} />
           </View>
@@ -56,37 +95,49 @@ export const ProfileScreen: FC = () => {
       <TouchableOpacity
         activeOpacity={0.8}
         accessibilityRole="button"
-        onPress={() => update({ coverAdded: !form.coverAdded })}
+        accessibilityLabel={t('profile.coverLabel')}
+        onPress={() => choose('cover')}
         style={[styles.coverRow, { flexDirection: row }]}
       >
-        <View style={[styles.coverCircle, form.coverAdded && styles.addedFill]}>
-          {form.coverAdded ? <CheckIcon color={COLORS.white} /> : <CameraIcon />}
+        <View style={[styles.coverCircle, form.coverUrl && styles.pictureAdded]}>
+          {busy === 'cover' ? (
+            <ActivityIndicator color={COLORS.rose} />
+          ) : form.coverUrl ? (
+            <Image source={{ uri: form.coverUrl }} style={styles.coverImage} />
+          ) : (
+            <CameraIcon />
+          )}
         </View>
         <View style={styles.flex}>
           <T weight="medium" style={styles.coverTitle}>
-            {t(form.coverAdded ? 'profile.coverAdded' : 'profile.coverTitle')}
+            {t(form.coverUrl ? 'profile.coverAdded' : 'profile.coverTitle')}
           </T>
           <T style={styles.coverHint}>{t('profile.coverHint')}</T>
         </View>
       </TouchableOpacity>
+
+      {failure ? <T style={styles.failure}>{failure}</T> : null}
 
       <LabeledInput
         label={t('profile.owner')}
         placeholder={t('profile.ownerPlaceholder')}
         value={form.ownerName}
         onChangeText={ownerName => update({ ownerName })}
+        maxLength={80}
       />
       <LabeledInput
         label={t('profile.business')}
         placeholder={t('profile.businessPlaceholder')}
         value={form.businessName}
         onChangeText={businessName => update({ businessName })}
+        maxLength={120}
       />
       <LabeledInput
         label={t('profile.description')}
         placeholder={t('profile.descriptionPlaceholder')}
         value={form.description}
         onChangeText={description => update({ description })}
+        maxLength={500}
         multiline
         textAlignVertical="top"
         style={styles.description}
@@ -164,7 +215,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addedFill: { backgroundColor: COLORS.rose, borderStyle: 'solid' },
+  pictureAdded: { borderStyle: 'solid' },
+  photoImage: { width: 93, height: 93, borderRadius: 46.5 },
+  coverImage: { width: 69, height: 69, borderRadius: 34.5 },
   plus: {
     position: 'absolute',
     right: 2,
@@ -178,6 +231,7 @@ const styles = StyleSheet.create({
   },
   photoHint: { fontSize: 12, color: COLORS.muted, marginTop: 12, textAlign: 'center' },
   optional: { fontSize: 12, color: COLORS.placeholder },
+  failure: { fontSize: 12, color: COLORS.error, marginTop: 10 },
   coverRow: { alignItems: 'center', gap: 14 },
   coverCircle: {
     width: 72,

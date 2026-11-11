@@ -1,4 +1,5 @@
 import { ImageSourcePropType } from 'react-native';
+import type { DocumentType } from '../api/types';
 import { TKey } from '../i18n/translations';
 
 export const PARTNER_TYPES: {
@@ -78,7 +79,7 @@ export const MY_SERVICES: {
   },
 ];
 
-export const DOCUMENTS: { id: string; label: TKey }[] = [
+export const DOCUMENTS: { id: DocumentType; label: TKey }[] = [
   { id: 'cr', label: 'documents.cr' },
   { id: 'id', label: 'documents.id' },
   { id: 'license', label: 'documents.license' },

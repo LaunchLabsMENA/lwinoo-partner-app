@@ -10,6 +10,7 @@ import { ProfileScreen } from '../screens/setup/profile';
 import { ScheduleScreen } from '../screens/setup/schedule';
 import { ServicesScreen } from '../screens/setup/services';
 import { UnderReviewScreen } from '../screens/setup/under-review';
+import { MainTabs } from './tabs';
 import { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -29,6 +30,11 @@ export const AppNavigator: FC = () => (
       name="UnderReview"
       component={UnderReviewScreen}
       options={{ gestureEnabled: false }}
+    />
+    <Stack.Screen
+      name="Main"
+      component={MainTabs}
+      options={{ animation: 'fade', gestureEnabled: false }}
     />
   </Stack.Navigator>
 );

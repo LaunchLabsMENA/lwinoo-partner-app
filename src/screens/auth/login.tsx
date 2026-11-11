@@ -10,10 +10,21 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppleIcon, GoogleIcon } from '../../components/icons';
-import { FieldLabel, Input, PhoneInput, PrimaryButton, T } from '../../components/ui';
+import {
+  FieldLabel,
+  Input,
+  LanguageToggle,
+  PhoneInput,
+  PrimaryButton,
+  T,
+  useComingSoon,
+} from '../../components/ui';
+import { errorMessage } from '../../api/errors';
 import { useLanguage } from '../../i18n';
 import { TKey } from '../../i18n/translations';
 import { useAppNavigation } from '../../navigation/types';
+import { useAppDispatch } from '../../store/hooks';
+import { requestOtp } from '../../store/thunks';
 import { COLORS } from '../../theme';
 
 type Channel = 'phone' | 'email';
@@ -25,34 +36,54 @@ const TABS: { id: Channel; label: TKey }[] = [
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const toSaudiE164 = (raw: string): string | null => {
+  const digits = raw
+    .replace(/\D/g, '')
+    .replace(/^(00)?966/, '')
+    .replace(/^0+/, '');
+  return /^5\d{8}$/.test(digits) ? `+966${digits}` : null;
+};
+
 export const LoginScreen: FC = () => {
   const navigation = useAppNavigation();
   const insets = useSafeAreaInsets();
-  const { t, row } = useLanguage();
+  const { t, row, isRTL } = useLanguage();
   const [channel, setChannel] = useState<Channel>('phone');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState<TKey | null>(null);
+  const [failure, setFailure] = useState('');
+  const [loading, setLoading] = useState(false);
+  const dispatch = useAppDispatch();
+  const comingSoon = useComingSoon();
 
   const selectChannel = (next: Channel) => {
     setChannel(next);
     setError(null);
+    setFailure('');
   };
 
-  const onContinue = () => {
-    const valid =
-      channel === 'phone'
-        ? phone.replace(/\D/g, '').length >= 9
-        : EMAIL_PATTERN.test(email.trim());
-    if (!valid) {
+  const onContinue = async () => {
+    if (loading) {
+      return;
+    }
+    const target = channel === 'phone' ? toSaudiE164(phone) : email.trim().toLowerCase();
+    if (!target || (channel === 'email' && !EMAIL_PATTERN.test(target))) {
       setError(channel === 'phone' ? 'login.errorPhone' : 'login.errorEmail');
       return;
     }
     setError(null);
-    navigation.navigate('Otp', { channel });
+    setFailure('');
+    setLoading(true);
+    try {
+      await dispatch(requestOtp({ method: channel, target })).unwrap();
+      navigation.navigate('Otp', { channel, target });
+    } catch (problem) {
+      setFailure(errorMessage(problem, t));
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const continueWithSocial = () => navigation.navigate('SetupPartner');
 
   return (
     <KeyboardAvoidingView
@@ -118,10 +149,12 @@ export const LoginScreen: FC = () => {
           </>
         )}
         {error ? <T style={styles.error}>{t(error)}</T> : null}
+        {failure ? <T style={styles.error}>{failure}</T> : null}
 
         <PrimaryButton
           label={t('common.continue')}
           onPress={onContinue}
+          loading={loading}
           style={styles.continue}
         />
 
@@ -135,7 +168,7 @@ export const LoginScreen: FC = () => {
           <TouchableOpacity
             accessibilityRole="button"
             activeOpacity={0.8}
-            onPress={continueWithSocial}
+            onPress={comingSoon}
             style={styles.social}
           >
             <GoogleIcon />
@@ -144,7 +177,7 @@ export const LoginScreen: FC = () => {
           <TouchableOpacity
             accessibilityRole="button"
             activeOpacity={0.8}
-            onPress={continueWithSocial}
+            onPress={comingSoon}
             style={styles.social}
           >
             <AppleIcon />
@@ -152,6 +185,9 @@ export const LoginScreen: FC = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      <LanguageToggle
+        style={[styles.language, { top: insets.top + 8 }, isRTL ? styles.languageRTL : styles.languageLTR]}
+      />
     </KeyboardAvoidingView>
   );
 };
@@ -159,6 +195,9 @@ export const LoginScreen: FC = () => {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.white },
   content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20 },
+  language: { position: 'absolute' },
+  languageLTR: { right: 20 },
+  languageRTL: { left: 20 },
   logo: { alignItems: 'center', marginBottom: 28 },
   logoImage: { width: 72, height: 72, borderRadius: 16 },
   title: { fontSize: 28, textAlign: 'center' },

@@ -1,5 +1,6 @@
 import React, { FC, ReactNode, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Modal,
   Pressable,
@@ -17,7 +18,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '../i18n';
-import { COLORS, FontWeightName } from '../theme';
+import { COLORS, FONTS, FontWeightName } from '../theme';
 import { ChevronDownIcon } from './icons';
 
 interface TProps extends TextProps {
@@ -45,24 +46,56 @@ export const useComingSoon = () => {
     Alert.alert(t('common.comingSoon'), t('common.comingSoonBody'), [{ text: t('common.ok') }]);
 };
 
+/** Always labelled in the language it switches to, so either audience can find it. */
+export const LanguageToggle: FC<{ style?: StyleProp<ViewStyle> }> = ({ style }) => {
+  const { isRTL, toggle } = useLanguage();
+  return (
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={isRTL ? 'Switch to English' : 'التبديل إلى العربية'}
+      hitSlop={8}
+      onPress={toggle}
+      style={[styles.languagePill, style]}
+    >
+      <Text
+        style={[
+          styles.languageText,
+          { fontFamily: isRTL ? FONTS.body.medium : FONTS.arabic.medium },
+        ]}
+      >
+        {isRTL ? 'EN' : 'عربي'}
+      </Text>
+    </TouchableOpacity>
+  );
+};
+
 export const PrimaryButton: FC<{
   label: string;
   onPress: () => void;
   icon?: ReactNode;
+  loading?: boolean;
   style?: StyleProp<ViewStyle>;
-}> = ({ label, onPress, icon, style }) => {
+}> = ({ label, onPress, icon, loading, style }) => {
   const { row } = useLanguage();
   return (
     <TouchableOpacity
       activeOpacity={0.85}
       accessibilityRole="button"
+      accessibilityState={{ busy: !!loading }}
+      disabled={loading}
       onPress={onPress}
-      style={[styles.primary, { flexDirection: row }, style]}
+      style={[styles.primary, { flexDirection: row }, loading && styles.primaryLoading, style]}
     >
-      <T weight="medium" style={styles.primaryLabel}>
-        {label}
-      </T>
-      {icon}
+      {loading ? (
+        <ActivityIndicator color={COLORS.white} />
+      ) : (
+        <>
+          <T weight="medium" style={styles.primaryLabel}>
+            {label}
+          </T>
+          {icon}
+        </>
+      )}
     </TouchableOpacity>
   );
 };
@@ -229,6 +262,18 @@ export const SelectField: FC<{
 
 const styles = StyleSheet.create({
   text: { color: COLORS.espresso },
+  languagePill: {
+    height: 30,
+    minWidth: 58,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: COLORS.hairline,
+    backgroundColor: COLORS.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  languageText: { fontSize: 13, color: COLORS.espresso },
   primary: {
     height: 54,
     borderRadius: 27,
@@ -237,6 +282,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
+  primaryLoading: { opacity: 0.7 },
   primaryLabel: { color: COLORS.white, fontSize: 16 },
   outline: {
     height: 42,

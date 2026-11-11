@@ -8,6 +8,7 @@ import { useLanguage } from '../../i18n';
 import { TKey } from '../../i18n/translations';
 import { useAppNavigation } from '../../navigation/types';
 import { useSetup } from '../../state/setup';
+import { useDraftSync } from '../../state/use-draft';
 import { COLORS } from '../../theme';
 
 const AREA_OPTIONS: { id: 'travel' | 'clients'; label: TKey }[] = [
@@ -72,6 +73,7 @@ const StaticMap: FC<{ radiusKm: number }> = ({ radiusKm }) => (
 
 export const AreaScreen: FC = () => {
   const navigation = useAppNavigation();
+  const saveDraft = useDraftSync();
   const { t, row } = useLanguage();
   const { form, update } = useSetup();
 
@@ -83,7 +85,10 @@ export const AreaScreen: FC = () => {
       footer={
         <PrimaryButton
           label={t('common.continue')}
-          onPress={() => navigation.navigate('SetupServices')}
+          onPress={() => {
+            saveDraft();
+            navigation.navigate('SetupServices');
+          }}
         />
       }
     >
