@@ -3,7 +3,8 @@ import { connectSession } from '../api/client';
 import { resetToLogin } from '../navigation/ref';
 import { setupReducer, setupReset, type SetupState } from '../state/setup';
 import {
-  meReceived,
+  accountReceived,
+  businessSummaryChanged,
   sessionCleared,
   sessionReducer,
   sessionStarted,
@@ -18,10 +19,16 @@ export const createAppStore = () => {
   const listeners = createListenerMiddleware<State>();
 
   listeners.startListening({
-    matcher: isAnyOf(sessionStarted, tokensRefreshed, meReceived, sessionCleared),
+    matcher: isAnyOf(
+      sessionStarted,
+      tokensRefreshed,
+      accountReceived,
+      businessSummaryChanged,
+      sessionCleared,
+    ),
     effect: (_, { getState }) => {
-      const { tokens, me } = getState().session;
-      writeSession(tokens ? { tokens, me } : null);
+      const { tokens, account } = getState().session;
+      writeSession(tokens ? { tokens, account } : null);
     },
   });
 

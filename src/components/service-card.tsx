@@ -1,54 +1,103 @@
-import React, { FC } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
-import { MY_SERVICES } from '../data/setup';
+import React, { FC, useState } from 'react';
+import { Alert, Image, StyleSheet, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { errorMessage } from '../api/errors';
+import type { Service } from '../api/types';
+import { fileUrl } from '../config';
 import { useLanguage } from '../i18n';
-import { toggleItem, useSetup } from '../state/setup';
+import type { AppNavigation } from '../navigation/types';
+import { useCategories } from '../state/setup';
+import { useAppDispatch } from '../store/hooks';
+import { saveService } from '../store/thunks';
 import { COLORS } from '../theme';
-import { OutlineButton, T, useComingSoon } from './ui';
+import { useLocalName } from './catalog';
+import { CameraIcon } from './icons';
+import { OutlineButton, T } from './ui';
 
-export const ServiceCard: FC<{ service: (typeof MY_SERVICES)[number] }> = ({ service }) => {
+export const ServiceCard: FC<{ service: Service }> = ({ service }) => {
   const { t, row } = useLanguage();
-  const { form, update } = useSetup();
-  const comingSoon = useComingSoon();
-  const active = !form.inactiveServices.includes(service.id);
+  const navigation = useNavigation<AppNavigation>();
+  const dispatch = useAppDispatch();
+  const categories = useCategories();
+  const localName = useLocalName();
+  const [busy, setBusy] = useState(false);
+
+  const toggle = async () => {
+    if (busy) {
+      return;
+    }
+    setBusy(true);
+    try {
+      await dispatch(
+        saveService({ id: service.id, input: { isActive: !service.isActive } }),
+      ).unwrap();
+    } catch (problem) {
+      Alert.alert(errorMessage(problem, t));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const image = fileUrl(service.imageUrl);
+  const category = categories.find(item => item.id === service.categoryId);
+  const details = [
+    service.price !== null && service.price !== undefined
+      ? t('bookings.price', { n: service.price })
+      : null,
+    service.durationMinutes ? t('services.minutes', { n: service.durationMinutes }) : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const [firstTag, ...moreTags] = service.tags ?? [];
 
   return (
     <View style={styles.card}>
       <View style={[styles.cardTop, { flexDirection: row }]}>
-        <Image source={service.image} style={styles.image} />
-        <View style={styles.flex}>
-          <T weight="medium" style={styles.title}>
-            {t(service.title)}
-          </T>
-          <T style={styles.subtitle}>{t(service.subtitle)}</T>
-          <View style={[styles.tags, { flexDirection: row }]}>
-            <View style={styles.tag}>
-              <T style={styles.tagLabel}>{t('services.ritual')}</T>
-            </View>
-            <View style={styles.tag}>
-              <T style={styles.tagLabel}>{t('services.more')}</T>
-            </View>
+        {image ? (
+          <Image source={{ uri: image }} style={styles.image} />
+        ) : (
+          <View style={[styles.image, styles.placeholder]}>
+            <CameraIcon />
           </View>
+        )}
+        <View style={styles.flex}>
+          <T weight="medium" style={styles.title} numberOfLines={1}>
+            {service.name}
+          </T>
+          <T style={styles.subtitle} numberOfLines={2}>
+            {service.description || (category ? localName(category) : details)}
+          </T>
+          {details && service.description ? <T style={styles.subtitle}>{details}</T> : null}
+          {firstTag ? (
+            <View style={[styles.tags, { flexDirection: row }]}>
+              <View style={styles.tag}>
+                <T style={styles.tagLabel}>{firstTag}</T>
+              </View>
+              {moreTags.length ? (
+                <View style={styles.tag}>
+                  <T style={styles.tagLabel}>+{moreTags.length}</T>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
         </View>
       </View>
       <View style={[styles.actions, { flexDirection: row }]}>
         <OutlineButton
           label={t('services.edit')}
-          onPress={comingSoon}
+          onPress={() => navigation.navigate('ServiceForm', { serviceId: service.id })}
           color={COLORS.muted}
           backgroundColor={COLORS.background}
           style={styles.flex}
         />
         <OutlineButton
-          label={t(active ? 'services.active' : 'services.inactive')}
-          onPress={() =>
-            update({ inactiveServices: toggleItem(form.inactiveServices, service.id) })
-          }
-          color={active ? COLORS.activeBorder : COLORS.muted}
-          borderColor={active ? COLORS.activeBorder : COLORS.hairline}
-          backgroundColor={active ? COLORS.activeFill : COLORS.white}
+          label={t(service.isActive ? 'services.active' : 'services.inactive')}
+          onPress={toggle}
+          color={service.isActive ? COLORS.activeBorder : COLORS.muted}
+          borderColor={service.isActive ? COLORS.activeBorder : COLORS.hairline}
+          backgroundColor={service.isActive ? COLORS.activeFill : COLORS.white}
           weight="bold"
-          style={styles.flex}
+          style={[styles.flex, busy && styles.busy]}
         />
       </View>
     </View>
@@ -57,6 +106,7 @@ export const ServiceCard: FC<{ service: (typeof MY_SERVICES)[number] }> = ({ ser
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  busy: { opacity: 0.5 },
   card: {
     padding: 12,
     marginTop: 12,
@@ -67,6 +117,7 @@ const styles = StyleSheet.create({
   },
   cardTop: { gap: 12 },
   image: { width: 86, height: 86, borderRadius: 10 },
+  placeholder: { backgroundColor: COLORS.chip, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 17 },
   subtitle: { fontSize: 12, color: COLORS.muted, marginTop: 4 },
   tags: { gap: 6, marginTop: 10, flexWrap: 'wrap' },

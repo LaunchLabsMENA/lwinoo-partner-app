@@ -160,25 +160,6 @@ export const LabeledInput: FC<TextInputProps & { label: string }> = ({ label, ..
   </View>
 );
 
-/** Saudi Arabia is the only market, so the country is fixed rather than a picker. */
-export const PhoneInput: FC<TextInputProps> = ({ style, ...rest }) => {
-  const { fontFor } = useLanguage();
-  return (
-    <View style={[styles.input, styles.phone, style]}>
-      <Text style={styles.flag}>🇸🇦</Text>
-      <ChevronDownIcon size={16} />
-      <TextInput
-        placeholder="+966 5X XXX XXXX"
-        placeholderTextColor={COLORS.placeholder}
-        keyboardType="phone-pad"
-        maxLength={16}
-        {...rest}
-        style={[styles.phoneText, { fontFamily: fontFor('regular') }]}
-      />
-    </View>
-  );
-};
-
 export const Chip: FC<{
   label: string;
   selected: boolean;
@@ -303,16 +284,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     fontSize: 15,
     color: COLORS.espresso,
-  },
-  phone: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  flag: { fontSize: 20 },
-  phoneText: {
-    flex: 1,
-    height: '100%',
-    fontSize: 15,
-    color: COLORS.espresso,
-    marginLeft: 4,
-    padding: 0,
   },
   chip: {
     height: 52,

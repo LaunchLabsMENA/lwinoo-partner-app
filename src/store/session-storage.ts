@@ -1,17 +1,17 @@
 import * as Keychain from 'react-native-keychain';
-import type { PartnerMe, Tokens } from '../api/types';
+import type { Account, Tokens } from '../api/types';
 
 const SERVICE = 'lwinoo.partner.session';
 
-export type StoredSession = { tokens: Tokens; me: PartnerMe | null };
+export type StoredSession = { tokens: Tokens; account: Account | null };
 
 export async function readSession(): Promise<StoredSession | null> {
   try {
     const stored = await Keychain.getGenericPassword({ service: SERVICE });
     if (stored) {
-      const saved = JSON.parse(stored.password) as StoredSession;
+      const saved = JSON.parse(stored.password) as Partial<StoredSession>;
       if (saved.tokens?.accessToken && saved.tokens.refreshToken) {
-        return { tokens: saved.tokens, me: saved.me ?? null };
+        return { tokens: saved.tokens, account: saved.account ?? null };
       }
     }
   } catch {}

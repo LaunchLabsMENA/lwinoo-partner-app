@@ -1,20 +1,34 @@
-import React, { FC, useState } from 'react';
+import React, { FC, useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { StyleSheet, View } from 'react-native';
 import { PortalScreen, SearchField, SmallButton } from '../../components/portal';
 import { ServiceCard } from '../../components/service-card';
-import { T, useComingSoon } from '../../components/ui';
-import { MY_SERVICES } from '../../data/setup';
+import { T } from '../../components/ui';
+import { useAppNavigation } from '../../navigation/types';
+import { useBusinessSetup } from '../../state/setup';
+import { useAppDispatch } from '../../store/hooks';
+import { loadServices } from '../../store/thunks';
 import { useLanguage } from '../../i18n';
 import { COLORS } from '../../theme';
 
 export const PortalServicesScreen: FC = () => {
   const { t, row } = useLanguage();
-  const comingSoon = useComingSoon();
+  const navigation = useAppNavigation();
+  const dispatch = useAppDispatch();
+  const services = useBusinessSetup()?.services ?? [];
+
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(loadServices());
+    }, [dispatch]),
+  );
   const [query, setQuery] = useState('');
 
   const needle = query.trim().toLowerCase();
-  const visible = MY_SERVICES.filter(service =>
-    `${t(service.title)} ${t(service.subtitle)}`.toLowerCase().includes(needle),
+  const visible = services.filter(service =>
+    `${service.name} ${service.description ?? ''} ${service.tags.join(' ')}`
+      .toLowerCase()
+      .includes(needle),
   );
 
   return (
@@ -28,7 +42,10 @@ export const PortalServicesScreen: FC = () => {
         <T weight="medium" style={styles.headingLabel}>
           {t('portalServices.yours')}
         </T>
-        <SmallButton label={t('portalServices.add')} onPress={comingSoon} />
+        <SmallButton
+          label={t('portalServices.add')}
+          onPress={() => navigation.navigate('ServiceForm')}
+        />
       </View>
       {visible.map(service => (
         <ServiceCard key={service.id} service={service} />

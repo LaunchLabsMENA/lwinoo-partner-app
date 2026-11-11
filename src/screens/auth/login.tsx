@@ -9,12 +9,12 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CountryPhoneInput } from '../../components/country-phone-input';
 import { AppleIcon, GoogleIcon } from '../../components/icons';
 import {
   FieldLabel,
   Input,
   LanguageToggle,
-  PhoneInput,
   PrimaryButton,
   T,
   useComingSoon,
@@ -22,7 +22,9 @@ import {
 import { errorMessage } from '../../api/errors';
 import { useLanguage } from '../../i18n';
 import { TKey } from '../../i18n/translations';
+import { DEFAULT_COUNTRY } from '../../data/countries';
 import { useAppNavigation } from '../../navigation/types';
+import { toE164 } from '../../utils/phone';
 import { useAppDispatch } from '../../store/hooks';
 import { requestOtp } from '../../store/thunks';
 import { COLORS } from '../../theme';
@@ -36,20 +38,13 @@ const TABS: { id: Channel; label: TKey }[] = [
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const toSaudiE164 = (raw: string): string | null => {
-  const digits = raw
-    .replace(/\D/g, '')
-    .replace(/^(00)?966/, '')
-    .replace(/^0+/, '');
-  return /^5\d{8}$/.test(digits) ? `+966${digits}` : null;
-};
-
 export const LoginScreen: FC = () => {
   const navigation = useAppNavigation();
   const insets = useSafeAreaInsets();
   const { t, row, isRTL } = useLanguage();
   const [channel, setChannel] = useState<Channel>('phone');
   const [phone, setPhone] = useState('');
+  const [country, setCountry] = useState(DEFAULT_COUNTRY);
   const [email, setEmail] = useState('');
   const [error, setError] = useState<TKey | null>(null);
   const [failure, setFailure] = useState('');
@@ -67,7 +62,7 @@ export const LoginScreen: FC = () => {
     if (loading) {
       return;
     }
-    const target = channel === 'phone' ? toSaudiE164(phone) : email.trim().toLowerCase();
+    const target = channel === 'phone' ? toE164(phone, country) : email.trim().toLowerCase();
     if (!target || (channel === 'email' && !EMAIL_PATTERN.test(target))) {
       setError(channel === 'phone' ? 'login.errorPhone' : 'login.errorEmail');
       return;
@@ -76,8 +71,8 @@ export const LoginScreen: FC = () => {
     setFailure('');
     setLoading(true);
     try {
-      await dispatch(requestOtp({ method: channel, target })).unwrap();
-      navigation.navigate('Otp', { channel, target });
+      const { mode } = await dispatch(requestOtp({ channel, identifier: target })).unwrap();
+      navigation.navigate('Otp', { channel, target, mode });
     } catch (problem) {
       setFailure(errorMessage(problem, t));
     } finally {
@@ -133,7 +128,15 @@ export const LoginScreen: FC = () => {
         {channel === 'phone' ? (
           <>
             <FieldLabel style={styles.fieldLabel}>{t('login.mobileLabel')}</FieldLabel>
-            <PhoneInput value={phone} onChangeText={setPhone} />
+            <CountryPhoneInput
+              country={country}
+              onCountryChange={next => {
+                setCountry(next);
+                setError(null);
+              }}
+              value={phone}
+              onChangeText={setPhone}
+            />
           </>
         ) : (
           <>

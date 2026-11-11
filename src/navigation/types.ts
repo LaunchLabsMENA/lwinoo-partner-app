@@ -4,13 +4,15 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 export type RootStackParamList = {
   Splash: undefined;
   Login: undefined;
-  Otp: { channel: 'phone' | 'email'; target: string };
+  Otp: { channel: 'phone' | 'email'; target: string; mode: 'login' | 'signup' };
   SetupPartner: undefined;
   SetupProfile: undefined;
   SetupSchedule: undefined;
   SetupArea: undefined;
   SetupServices: undefined;
   SetupDocuments: undefined;
+  SetupPayout: undefined;
+  ServiceForm: { serviceId?: string } | undefined;
   UnderReview: undefined;
   Main: undefined;
 };

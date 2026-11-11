@@ -10,17 +10,18 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '../i18n';
-import { useDraftFailed } from '../state/setup';
 import { COLORS } from '../theme';
 import { BackIcon } from './icons';
 import { LanguageToggle, T } from './ui';
 
-export const TOTAL_SETUP_STEPS = 6;
+export const TOTAL_SETUP_STEPS = 7;
 
-export const ScreenHeader: FC<{ title: string; showLanguage?: boolean }> = ({
-  title,
-  showLanguage,
-}) => {
+export const ScreenHeader: FC<{
+  title: string;
+  showLanguage?: boolean;
+  /** Replaces the default "go back" on the arrow. */
+  onBack?: () => void;
+}> = ({ title, showLanguage, onBack }) => {
   const navigation = useNavigation();
   const { isRTL, row } = useLanguage();
   return (
@@ -29,7 +30,7 @@ export const ScreenHeader: FC<{ title: string; showLanguage?: boolean }> = ({
         accessibilityRole="button"
         accessibilityLabel="Back"
         hitSlop={12}
-        onPress={() => navigation.goBack()}
+        onPress={onBack ?? (() => navigation.goBack())}
         style={styles.headerSide}
       >
         <View style={isRTL ? styles.flipped : undefined}>
@@ -47,17 +48,20 @@ export const ScreenHeader: FC<{ title: string; showLanguage?: boolean }> = ({
 };
 
 export const SetupScaffold: FC<{
-  step: number;
+  /** Leave out for screens outside the numbered steps. */
+  step?: number;
+  /** Shown above the footer, e.g. why a save failed. */
+  error?: string;
   header: string;
   title: string;
   titleAlign?: 'left' | 'center';
   footer: ReactNode;
   footerTop?: ReactNode;
+  onBack?: () => void;
   children: ReactNode;
-}> = ({ step, header, title, titleAlign = 'center', footer, footerTop, children }) => {
+}> = ({ step, error, header, title, titleAlign = 'center', footer, footerTop, onBack, children }) => {
   const insets = useSafeAreaInsets();
   const { t, isRTL, row } = useLanguage();
-  const draftFailed = useDraftFailed();
   const resolvedAlign = titleAlign === 'center' ? 'center' : isRTL ? 'right' : 'left';
 
   return (
@@ -66,15 +70,17 @@ export const SetupScaffold: FC<{
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={{ paddingTop: insets.top }}>
-        <ScreenHeader title={header} showLanguage />
-        <View style={styles.progressWrap}>
-          <T style={styles.stepLabel}>{t('setup.step', { n: step, total: TOTAL_SETUP_STEPS })}</T>
-          <View style={[styles.bars, { flexDirection: row }]}>
-            {Array.from({ length: TOTAL_SETUP_STEPS }).map((_, index) => (
-              <View key={index} style={[styles.bar, index < step && styles.barDone]} />
-            ))}
+        <ScreenHeader title={header} showLanguage onBack={onBack} />
+        {step ? (
+          <View style={styles.progressWrap}>
+            <T style={styles.stepLabel}>{t('setup.step', { n: step, total: TOTAL_SETUP_STEPS })}</T>
+            <View style={[styles.bars, { flexDirection: row }]}>
+              {Array.from({ length: TOTAL_SETUP_STEPS }).map((_, index) => (
+                <View key={index} style={[styles.bar, index < step && styles.barDone]} />
+              ))}
+            </View>
           </View>
-        </View>
+        ) : null}
       </View>
       <ScrollView
         style={styles.flex}
@@ -88,7 +94,7 @@ export const SetupScaffold: FC<{
         {children}
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
-        {draftFailed ? <T style={styles.draftFailed}>{t('setup.draftFailed')}</T> : null}
+        {error ? <T style={styles.error}>{error}</T> : null}
         {footerTop}
         {footer}
       </View>
@@ -116,7 +122,7 @@ const styles = StyleSheet.create({
   barDone: { backgroundColor: COLORS.rose },
   content: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 28 },
   title: { fontSize: 24, marginBottom: 12 },
-  draftFailed: { fontSize: 12, color: COLORS.error, marginBottom: 8 },
+  error: { fontSize: 12, color: COLORS.error, marginBottom: 10 },
   footer: {
     backgroundColor: '#FEFEFE',
     paddingHorizontal: 20,

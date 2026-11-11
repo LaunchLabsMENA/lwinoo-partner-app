@@ -1,137 +1,176 @@
-import React, { FC, useState } from 'react';
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { errorMessage } from '../../api/errors';
-import type { DocumentType } from '../../api/types';
+import React, { FC, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
+import type { BusinessDocument, DocumentType } from '../../api/types';
+import { useLoadCatalog } from '../../components/catalog';
 import { CheckIcon, UploadIcon } from '../../components/icons';
 import { PickedImage, usePhotoPicker } from '../../components/photo-picker';
 import { SetupScaffold } from '../../components/setup-scaffold';
 import { FieldLabel, PrimaryButton, T } from '../../components/ui';
-import { DOCUMENTS } from '../../data/setup';
+import { documentLabel, MAX_MULTI_DOCUMENTS, MULTI_DOCUMENTS } from '../../data/setup';
 import { useLanguage } from '../../i18n';
 import { useAppNavigation } from '../../navigation/types';
-import { useSetup } from '../../state/setup';
-import { validateSetup } from '../../state/validate';
+import { useBusinessSetup, usePartnerType } from '../../state/setup';
+import { useStepRunner } from '../../state/use-step';
 import { useAppDispatch } from '../../store/hooks';
-import { submitApplication, uploadPicture } from '../../store/thunks';
+import { attachDocument, loadBusiness, removeDocuments } from '../../store/thunks';
 import { COLORS } from '../../theme';
 
 export const DocumentsScreen: FC = () => {
   const navigation = useAppNavigation();
-  const { t, row } = useLanguage();
-  const { form, update } = useSetup();
-  const pickPhoto = usePhotoPicker();
   const dispatch = useAppDispatch();
-  const [busy, setBusy] = useState<DocumentType | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [failure, setFailure] = useState('');
+  const { t, row } = useLanguage();
+  const pickPhoto = usePhotoPicker();
+  const partnerType = usePartnerType();
+  const documents = useBusinessSetup()?.documents ?? [];
+  const { failure, setFailure, run } = useStepRunner();
+  const [busyType, setBusyType] = useState<DocumentType | null>(null);
+  useLoadCatalog();
 
-  const upload = async (type: DocumentType, picked: PickedImage) => {
-    setBusy(type);
-    try {
-      const url = await dispatch(uploadPicture({ ...picked, purpose: 'document' })).unwrap();
-      update({ documents: [...form.documents.filter(item => item.type !== type), { type, url }] });
-    } catch (problem) {
-      setFailure(errorMessage(problem, t));
-    } finally {
-      setBusy(null);
-    }
+  useEffect(() => {
+    run(() => dispatch(loadBusiness()).unwrap());
+    // Load once when the step opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const required = partnerType?.requiredDocuments ?? [];
+  const ofType = (type: DocumentType) => documents.filter(item => item.type === type);
+
+  const work = async (type: DocumentType, task: () => Promise<unknown>) => {
+    setBusyType(type);
+    await run(task);
+    setBusyType(null);
   };
 
-  const toggle = (type: DocumentType) => {
-    if (busy || submitting) {
+  const add = (type: DocumentType) =>
+    pickPhoto((file: PickedImage) =>
+      work(type, () => dispatch(attachDocument({ type, file })).unwrap()),
+    );
+
+  const remove = (type: DocumentType, items: BusinessDocument[]) =>
+    work(type, () => dispatch(removeDocuments(items.map(item => item.id))).unwrap());
+
+  const onRow = (type: DocumentType) => {
+    if (busyType) {
       return;
     }
     setFailure('');
-    if (form.documents.some(item => item.type === type)) {
-      update({ documents: form.documents.filter(item => item.type !== type) });
+    const uploaded = ofType(type);
+    if (!uploaded.length) {
+      add(type);
       return;
     }
-    pickPhoto(picked => upload(type, picked));
+    const multi = MULTI_DOCUMENTS.includes(type);
+    Alert.alert(t(documentLabel(type)), undefined, [
+      ...(multi && uploaded.length < MAX_MULTI_DOCUMENTS
+        ? [{ text: t('documents.addAnother'), onPress: () => add(type) }]
+        : []),
+      ...(!multi ? [{ text: t('documents.replace'), onPress: () => add(type) }] : []),
+      {
+        text: t(multi ? 'documents.removeAll' : 'documents.remove'),
+        style: 'destructive' as const,
+        onPress: () => remove(type, uploaded),
+      },
+      { text: t('photo.cancel'), style: 'cancel' as const },
+    ]);
   };
 
-  const submit = async () => {
-    if (busy || submitting) {
+  const onReset = () => {
+    if (!documents.length || busyType) {
       return;
     }
-    const issue = validateSetup(form);
-    if (issue) {
-      setFailure(
-        issue.key === 'required'
-          ? t('setup.error.required', { field: t(issue.field) })
-          : t(issue.key === 'time' ? 'setup.error.time' : 'setup.error.documents'),
-      );
-      return;
-    }
-    setSubmitting(true);
-    setFailure('');
-    try {
-      await dispatch(submitApplication()).unwrap();
-      navigation.reset({ index: 0, routes: [{ name: 'UnderReview' }] });
-    } catch (problem) {
-      setFailure(errorMessage(problem, t));
-    } finally {
-      setSubmitting(false);
-    }
+    Alert.alert(t('documents.resetTitle'), undefined, [
+      { text: t('photo.cancel'), style: 'cancel' },
+      {
+        text: t('documents.reset'),
+        style: 'destructive',
+        onPress: () => run(() => dispatch(removeDocuments(documents.map(item => item.id))).unwrap()),
+      },
+    ]);
   };
+
+  const done = required.filter(type => ofType(type).some(item => item.status !== 'REJECTED'));
+
+  // Documents are optional: the owner can continue and add them later.
+  const onContinue = () => navigation.navigate('SetupPayout');
 
   return (
     <SetupScaffold
       step={6}
+      error={failure}
       header={t('documents.header')}
       title={t('documents.title')}
       footerTop={
-        <View>
-          {failure ? <T style={styles.failure}>{failure}</T> : null}
-          <View style={[styles.summary, { flexDirection: row }]}>
-            <View style={[styles.summaryLeft, { flexDirection: row }]}>
-              <View style={styles.summaryDot} />
-              <T weight="medium" style={styles.summaryText}>
-                {t('documents.count', { n: form.documents.length })}
-              </T>
-            </View>
-            <TouchableOpacity
-              accessibilityRole="button"
-              hitSlop={10}
-              onPress={() => update({ documents: [] })}
-            >
-              <T style={styles.reset}>{t('documents.reset')}</T>
-            </TouchableOpacity>
+        <View style={[styles.summary, { flexDirection: row }]}>
+          <View style={[styles.summaryLeft, { flexDirection: row }]}>
+            <View style={styles.summaryDot} />
+            <T weight="medium" style={styles.summaryText}>
+              {t('documents.progress', { n: done.length, total: required.length })}
+            </T>
           </View>
+          <TouchableOpacity accessibilityRole="button" hitSlop={10} onPress={onReset}>
+            <T style={styles.reset}>{t('documents.reset')}</T>
+          </TouchableOpacity>
         </View>
       }
-      footer={
-        <PrimaryButton
-          label={t('documents.submit')}
-          onPress={submit}
-          loading={submitting}
-        />
-      }
+      footer={<PrimaryButton label={t('common.continue')} onPress={onContinue} />}
     >
-      {DOCUMENTS.map(document => {
-        const uploaded = form.documents.some(item => item.type === document.id);
+      {required.map(type => {
+        const uploaded = ofType(type);
+        const latest = uploaded[uploaded.length - 1];
+        const rejected = latest?.status === 'REJECTED';
+        const approved = latest?.status === 'APPROVED';
+        const has = uploaded.length > 0 && !rejected;
+        const label = !latest
+          ? t('documents.tap')
+          : rejected
+          ? t('documents.rejected')
+          : approved
+          ? t('documents.approved')
+          : MULTI_DOCUMENTS.includes(type) && uploaded.length > 1
+          ? t('documents.uploadedCount', { n: uploaded.length })
+          : t('documents.uploaded');
         return (
-          <View key={document.id} style={styles.row}>
-            <FieldLabel>{t(document.label)}</FieldLabel>
+          <View key={type} style={styles.row}>
+            <FieldLabel>{`${t(documentLabel(type))} ${t('profile.optional')}`}</FieldLabel>
             <TouchableOpacity
               activeOpacity={0.8}
               accessibilityRole="button"
-              accessibilityState={{ selected: uploaded }}
-              onPress={() => toggle(document.id)}
-              style={[styles.upload, uploaded && styles.uploaded, { flexDirection: row }]}
+              accessibilityState={{ selected: has, busy: busyType === type }}
+              onPress={() => onRow(type)}
+              style={[
+                styles.upload,
+                has && styles.uploaded,
+                rejected && styles.rejected,
+                { flexDirection: row },
+              ]}
             >
-              <View style={[styles.uploadIcon, uploaded && styles.uploadedIcon]}>
-                {busy === document.id ? (
+              <View
+                style={[
+                  styles.uploadIcon,
+                  has && styles.uploadedIcon,
+                  rejected && styles.rejectedIcon,
+                ]}
+              >
+                {busyType === type ? (
                   <ActivityIndicator size="small" color={COLORS.white} />
-                ) : uploaded ? (
+                ) : has ? (
                   <CheckIcon size={13} color={COLORS.white} />
                 ) : (
                   <UploadIcon size={13} color={COLORS.white} />
                 )}
               </View>
-              <T weight="medium" style={uploaded ? styles.uploadedLabel : styles.uploadLabel}>
-                {t(uploaded ? 'documents.uploaded' : 'documents.tap')}
+              <T
+                weight="medium"
+                style={
+                  rejected ? styles.rejectedLabel : has ? styles.uploadedLabel : styles.uploadLabel
+                }
+              >
+                {label}
               </T>
             </TouchableOpacity>
+            {rejected && latest.rejectionReason ? (
+              <T style={styles.reason}>{latest.rejectionReason}</T>
+            ) : null}
           </View>
         );
       })}
@@ -154,6 +193,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.activeBorder,
   },
+  rejected: { backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.danger },
   uploadIcon: {
     width: 20,
     height: 20,
@@ -163,12 +203,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   uploadedIcon: { backgroundColor: COLORS.activeBorder },
+  rejectedIcon: { backgroundColor: COLORS.danger },
   uploadLabel: { fontSize: 13 },
   uploadedLabel: { fontSize: 13, color: COLORS.activeBorder },
+  rejectedLabel: { fontSize: 13, color: COLORS.danger },
+  reason: { fontSize: 12, color: COLORS.danger, marginTop: 6 },
   summary: { alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   summaryLeft: { alignItems: 'center', gap: 6 },
   summaryDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.rose },
   summaryText: { fontSize: 12 },
   reset: { fontSize: 12, color: COLORS.rose },
-  failure: { fontSize: 12, color: COLORS.error, marginBottom: 8 },
 });

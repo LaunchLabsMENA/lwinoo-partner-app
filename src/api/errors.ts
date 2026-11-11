@@ -8,6 +8,7 @@ export interface ApiError {
   code: string;
   message: string;
   status: number;
+  /** Everything else the server put in `error`, such as `retryAfter` or `fields`. */
   details: Record<string, unknown>;
 }
 
@@ -25,6 +26,9 @@ const isApiError = (value: unknown): value is ApiError =>
   typeof (value as ApiError).status === 'number' &&
   typeof (value as ApiError).details === 'object';
 
+const fallbackCode = (status: number) =>
+  status === 429 ? 'RATE_LIMITED' : status === 401 ? 'UNAUTHORIZED' : 'UNKNOWN';
+
 export function toApiError(error: unknown): ApiError {
   if (axios.isAxiosError(error)) {
     if (!error.response) {
@@ -34,13 +38,14 @@ export function toApiError(error: unknown): ApiError {
     const body = error.response.data as { error?: unknown } | undefined;
     const failure =
       typeof body?.error === 'object' && body.error !== null
-        ? (body.error as { code?: string; message?: string; details?: Record<string, unknown> })
-        : undefined;
+        ? (body.error as Record<string, unknown>)
+        : {};
+    const { code, message, ...details } = failure;
     return apiError(
-      failure?.code ?? (status === 429 ? 'RATE_LIMITED' : 'UNKNOWN'),
-      failure?.message ?? error.message,
+      typeof code === 'string' ? code : fallbackCode(status),
+      typeof message === 'string' ? message : error.message,
       status,
-      failure?.details ?? {},
+      details,
     );
   }
   if (isApiError(error)) {
@@ -49,50 +54,84 @@ export function toApiError(error: unknown): ApiError {
   return apiError('UNKNOWN', error instanceof Error ? error.message : 'Unknown error', -1);
 }
 
+export const LOCKED_CODES = ['BUSINESS_UNDER_REVIEW', 'BUSINESS_LOCKED', 'BUSINESS_SUSPENDED'];
+
+const fieldMessages = (fields: unknown): string[] => {
+  if (Array.isArray(fields)) {
+    return fields
+      .map(item => (typeof item === 'string' ? item : (item as { message?: string })?.message))
+      .filter((item): item is string => !!item);
+  }
+  if (fields && typeof fields === 'object') {
+    return Object.values(fields).flat().map(String);
+  }
+  return [];
+};
+
 export function errorMessage(error: unknown, t: Translate): string {
   const failure = toApiError(error);
+  const wait = Number(failure.details.retryAfter ?? 60);
   switch (failure.code) {
     case 'NETWORK_ERROR':
       return t('error.network');
     case 'OTP_INVALID': {
-      const left = failure.details.attemptsLeft;
-      return typeof left === 'number' && left > 0
-        ? t('error.otpInvalidLeft', { n: left })
+      const left = failure.message.match(/\d+/);
+      return left && Number(left[0]) > 0
+        ? t('error.otpInvalidLeft', { n: left[0] })
         : t('error.otpInvalid');
     }
+    case 'OTP_EXPIRED':
+    case 'OTP_NOT_FOUND':
+      return t('error.otpExpired');
+    case 'OTP_ATTEMPTS_EXCEEDED':
     case 'OTP_LOCKED':
       return t('error.otpLocked');
-    case 'OTP_SEND_LIMIT':
+    case 'OTP_LIMIT_REACHED':
       return t('error.otpSendLimit');
-    case 'OTP_RESEND_COOLDOWN':
-      return t('error.otpCooldown', { s: Number(failure.details.retryAfterSeconds ?? 60) });
-    case 'ROLE_MISMATCH':
-      return t('error.roleMismatch');
-    case 'ACCOUNT_BLOCKED':
-      return t('error.accountBlocked');
-    case 'ACCOUNT_SUSPENDED':
-      return t('error.accountSuspended');
-    case 'RATE_LIMITED':
-      return t('error.rateLimited');
-    case 'SMS_SEND_FAILED':
-    case 'EMAIL_SEND_FAILED':
-    case 'SMS_NOT_CONFIGURED':
-    case 'EMAIL_NOT_CONFIGURED':
+    case 'OTP_COOLDOWN':
+      return t('error.otpCooldown', { s: wait });
+    case 'OTP_DELIVERY_FAILED':
       return t('error.sendFailed');
+    case 'INVALID_IDENTIFIER':
+      return t('error.invalidIdentifier');
+    case 'BUSINESS_ACCOUNT_REQUIRED':
+    case 'FORBIDDEN':
+      return t('error.businessAccountRequired');
+    case 'RATE_LIMITED':
+    case 'AUTH_THROTTLED':
+      return t('error.rateLimited', { s: wait });
+    case 'BUSINESS_UNDER_REVIEW':
+      return t('error.underReview');
+    case 'BUSINESS_LOCKED':
+    case 'BUSINESS_ALREADY_APPROVED':
+      return t('error.businessLocked');
+    case 'BUSINESS_SUSPENDED':
+      return t('error.businessSuspended');
+    case 'SERVICE_LIMIT_REACHED':
+      return t('error.serviceLimit');
+    case 'DOCUMENT_LIMIT_REACHED':
+      return t('error.documentLimit');
+    case 'FILE_TOO_LARGE':
+      return t('error.fileTooLarge');
+    case 'FILE_REQUIRED':
     case 'STORAGE_NOT_CONFIGURED':
     case 'UPLOAD_FAILED':
       return t('error.uploadFailed');
-    case 'ONBOARDING_LOCKED':
-      return t('error.onboardingLocked');
-    case 'ONBOARDING_INCOMPLETE':
+    case 'GEOCODER_UNAVAILABLE':
+    case 'GEOCODER_BUSY':
+      return t('error.geocoder');
     case 'VALIDATION_ERROR':
-      return failure.message || t('error.generic');
+    case 'BUSINESS_INCOMPLETE':
+    case 'DOCUMENT_NOT_REQUIRED': {
+      const lines = [failure.message, ...fieldMessages(failure.details.fields)].filter(Boolean);
+      return lines.length ? [...new Set(lines)].join('\n') : t('error.generic');
+    }
     default:
       return t('error.generic');
   }
 }
 
 export const retryAfterSeconds = (error: unknown): number | undefined => {
-  const value = toApiError(error).details.retryAfterSeconds;
+  const value = toApiError(error).details.retryAfter;
   return typeof value === 'number' ? value : undefined;
 };

@@ -5,13 +5,16 @@ import { PartnerIdentity, PortalScreen, SectionTitle } from '../../components/po
 import { ServiceCard } from '../../components/service-card';
 import { OutlineButton, T, useComingSoon } from '../../components/ui';
 import { OVERVIEW_STATS, UNREAD_NOTIFICATIONS } from '../../data/portal';
-import { MY_SERVICES } from '../../data/setup';
+import { useAppNavigation } from '../../navigation/types';
+import { useBusinessSetup } from '../../state/setup';
 import { useLanguage } from '../../i18n';
 import { COLORS } from '../../theme';
 
 export const OverviewScreen: FC = () => {
   const { t, row } = useLanguage();
   const comingSoon = useComingSoon();
+  const navigation = useAppNavigation();
+  const services = useBusinessSetup()?.services ?? [];
 
   return (
     <PortalScreen>
@@ -47,9 +50,16 @@ export const OverviewScreen: FC = () => {
       </View>
 
       <SectionTitle>{t('overview.services')}</SectionTitle>
-      {MY_SERVICES.map(service => (
+      {services.slice(0, 3).map(service => (
         <ServiceCard key={service.id} service={service} />
       ))}
+      {services.length === 0 ? (
+        <OutlineButton
+          label={t('portalServices.add')}
+          onPress={() => navigation.navigate('ServiceForm')}
+          style={styles.addService}
+        />
+      ) : null}
 
       <SectionTitle>{t('overview.quickAction')}</SectionTitle>
       <View style={[styles.quick, { flexDirection: row }]}>
@@ -105,6 +115,7 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 10, letterSpacing: 0.4, color: COLORS.rose },
   statValue: { fontSize: 21, marginTop: 6 },
   statCaption: { fontSize: 10, color: COLORS.muted, marginTop: 6 },
+  addService: { marginTop: 12 },
   quick: { gap: 10, marginTop: 12 },
   quickButton: { flex: 1, height: 52, borderRadius: 14 },
 });

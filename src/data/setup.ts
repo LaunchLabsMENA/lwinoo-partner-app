@@ -1,52 +1,30 @@
 import { ImageSourcePropType } from 'react-native';
-import type { DocumentType } from '../api/types';
+import type { DocumentType, TeamSize } from '../api/types';
 import { TKey } from '../i18n/translations';
 
-export const PARTNER_TYPES: {
-  id: 'beauty' | 'fashion';
-  title: TKey;
-  subtitle: TKey;
-  image: ImageSourcePropType;
-}[] = [
-  {
-    id: 'beauty',
-    title: 'partner.beauty',
-    subtitle: 'partner.beautySub',
-    image: require('../assets/images/partner-beauty.jpg'),
-  },
-  {
-    id: 'fashion',
-    title: 'partner.fashion',
-    subtitle: 'partner.fashionSub',
-    image: require('../assets/images/partner-fashion.jpg'),
-  },
+/** Shown when a partner type has no image of its own yet. */
+export const PARTNER_TYPE_IMAGES: Record<string, ImageSourcePropType> = {
+  'fashion-boutique': require('../assets/images/partner-fashion.jpg'),
+};
+export const DEFAULT_PARTNER_IMAGE: ImageSourcePropType = require('../assets/images/partner-beauty.jpg');
+
+/** The API stores the city's English name; the map opens on it. */
+export const CITIES: { name: string; label: TKey; latitude: number; longitude: number }[] = [
+  { name: 'Riyadh', label: 'city.riyadh', latitude: 24.7136, longitude: 46.6753 },
+  { name: 'Jeddah', label: 'city.jeddah', latitude: 21.5433, longitude: 39.1728 },
+  { name: 'Dammam', label: 'city.dammam', latitude: 26.4207, longitude: 50.0888 },
+  { name: 'Makkah', label: 'city.makkah', latitude: 21.3891, longitude: 39.8579 },
+  { name: 'Madinah', label: 'city.madinah', latitude: 24.5247, longitude: 39.5692 },
 ];
 
-export const SERVICE_CATEGORIES: { id: string; label: TKey }[] = [
-  { id: 'salon', label: 'profile.salon' },
-  { id: 'makeup', label: 'profile.makeup' },
-  { id: 'nails', label: 'profile.nails' },
-  { id: 'spa', label: 'profile.spa' },
-  { id: 'home', label: 'profile.home' },
+export const TEAM_SIZES: { value: TeamSize; label: string }[] = [
+  { value: 'SOLO', label: '1' },
+  { value: 'TWO_TO_FIVE', label: '2-5' },
+  { value: 'SIX_TO_TEN', label: '6-10' },
+  { value: 'TEN_PLUS', label: '10+' },
 ];
 
-export const CITIES: { id: string; label: TKey }[] = [
-  { id: 'riyadh', label: 'city.riyadh' },
-  { id: 'jeddah', label: 'city.jeddah' },
-  { id: 'dammam', label: 'city.dammam' },
-  { id: 'makkah', label: 'city.makkah' },
-  { id: 'madinah', label: 'city.madinah' },
-];
-
-export const ADDRESSES: { id: string; label: TKey }[] = [
-  { id: 'olaya', label: 'address.olaya' },
-  { id: 'malqa', label: 'address.malqa' },
-  { id: 'nakheel', label: 'address.nakheel' },
-  { id: 'yasmin', label: 'address.yasmin' },
-];
-
-export const TEAM_SIZES = ['1', '2-5', '6-10', '10+'];
-
+/** In API order: index = dayOfWeek (0 = Sunday). */
 export const DAYS: { id: string; label: TKey }[] = [
   { id: 'sun', label: 'day.sun' },
   { id: 'mon', label: 'day.mon' },
@@ -59,29 +37,8 @@ export const DAYS: { id: string; label: TKey }[] = [
 
 export const RADII = [5, 10, 15, 20, 25];
 
-export const MY_SERVICES: {
-  id: string;
-  title: TKey;
-  subtitle: TKey;
-  image: ImageSourcePropType;
-}[] = [
-  {
-    id: 'facial',
-    title: 'services.facial',
-    subtitle: 'services.facialSub',
-    image: require('../assets/images/service-facial.jpg'),
-  },
-  {
-    id: 'manicure',
-    title: 'services.manicure',
-    subtitle: 'services.manicureSub',
-    image: require('../assets/images/service-manicure.jpg'),
-  },
-];
+export const documentLabel = (type: DocumentType): TKey => `doc.${type}` as TKey;
 
-export const DOCUMENTS: { id: DocumentType; label: TKey }[] = [
-  { id: 'cr', label: 'documents.cr' },
-  { id: 'id', label: 'documents.id' },
-  { id: 'license', label: 'documents.license' },
-  { id: 'photos', label: 'documents.photos' },
-];
+/** Only premises photos can be added more than once (up to 10). */
+export const MULTI_DOCUMENTS: DocumentType[] = ['PREMISES_PHOTO'];
+export const MAX_MULTI_DOCUMENTS = 10;

@@ -13,9 +13,8 @@ import { ScreenHeader } from '../../components/setup-scaffold';
 import { PrimaryButton, T } from '../../components/ui';
 import { useLanguage } from '../../i18n';
 import { errorMessage, retryAfterSeconds } from '../../api/errors';
-import { routeFor } from '../../navigation/route-for';
+import { resetTo } from '../../navigation/route-for';
 import { RootStackParamList, useAppNavigation } from '../../navigation/types';
-import { useSetup } from '../../state/setup';
 import { useAppDispatch } from '../../store/hooks';
 import { requestOtp, verifyOtp } from '../../store/thunks';
 import { COLORS } from '../../theme';
@@ -35,7 +34,6 @@ export const OtpScreen: FC = () => {
   const [failure, setFailure] = useState('');
   const [loading, setLoading] = useState(false);
   const dispatch = useAppDispatch();
-  const { load } = useSetup();
   const isEmail = params.channel === 'email';
 
   useEffect(() => {
@@ -62,11 +60,10 @@ export const OtpScreen: FC = () => {
     }
     setLoading(true);
     try {
-      const session = await dispatch(
-        verifyOtp({ method: params.channel, target: params.target, code }),
+      const routes = await dispatch(
+        verifyOtp({ mode: params.mode, channel: params.channel, identifier: params.target, code }),
       ).unwrap();
-      load(session.user.onboarding);
-      navigation.reset({ index: 0, routes: [{ name: routeFor(session.user) }] });
+      navigation.reset(resetTo(routes));
     } catch (problem) {
       setCode('');
       setFailure(errorMessage(problem, t));
@@ -78,10 +75,10 @@ export const OtpScreen: FC = () => {
   const onResend = async () => {
     setFailure('');
     try {
-      const sent = await dispatch(
-        requestOtp({ method: params.channel, target: params.target }),
+      const { sent } = await dispatch(
+        requestOtp({ channel: params.channel, identifier: params.target, mode: params.mode }),
       ).unwrap();
-      setSeconds(sent.resendAfterSeconds);
+      setSeconds(typeof sent.resendAfter === 'number' ? sent.resendAfter : RESEND_SECONDS);
     } catch (problem) {
       const wait = retryAfterSeconds(problem);
       if (wait) {

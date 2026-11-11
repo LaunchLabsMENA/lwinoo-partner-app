@@ -1,0 +1,5 @@
+<resources>
+    <!-- Same as COLORS.splash and COLORS.background in src/theme. -->
+    <color name="splash">#D9A7AD</color>
+    <color name="app_background">#F9F5F4</color>
+</resources>

@@ -6,7 +6,9 @@ import { DAYS } from '../../data/setup';
 import { useLanguage } from '../../i18n';
 import { useAppNavigation } from '../../navigation/types';
 import { toggleItem, useSetup } from '../../state/setup';
-import { useDraftSync } from '../../state/use-draft';
+import { useStepRunner } from '../../state/use-step';
+import { useAppDispatch } from '../../store/hooks';
+import { saveSchedule } from '../../store/thunks';
 import { COLORS } from '../../theme';
 
 const TimeField: FC<{
@@ -26,37 +28,64 @@ const TimeField: FC<{
   </View>
 );
 
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+const END_TIME = /^(([01]\d|2[0-3]):[0-5]\d|24:00)$/;
+const minutes = (value: string) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3));
+
 export const ScheduleScreen: FC = () => {
   const navigation = useAppNavigation();
-  const saveDraft = useDraftSync();
+  const dispatch = useAppDispatch();
+  const { busy, failure, setFailure, run } = useStepRunner();
   const { t, row } = useLanguage();
   const { form, update } = useSetup();
+
+  const problem = () => {
+    if (!form.days.length) return t('schedule.error.days');
+    if (!TIME.test(form.timeStart) || !END_TIME.test(form.timeEnd)) return t('setup.error.time');
+    if (minutes(form.timeEnd) <= minutes(form.timeStart)) return t('schedule.error.order');
+    if (form.breakEnabled) {
+      if (!TIME.test(form.breakStart) || !TIME.test(form.breakEnd)) return t('setup.error.time');
+      const start = minutes(form.breakStart);
+      const end = minutes(form.breakEnd);
+      if (end <= start || start < minutes(form.timeStart) || end > minutes(form.timeEnd)) {
+        return t('schedule.error.break');
+      }
+    }
+    return null;
+  };
+
+  const onContinue = () => {
+    const issue = problem();
+    if (issue) {
+      setFailure(issue);
+      return;
+    }
+    run(
+      () => dispatch(saveSchedule()).unwrap(),
+      () => navigation.navigate('SetupArea'),
+    );
+  };
 
   return (
     <SetupScaffold
       step={3}
+      error={failure}
       header={t('schedule.header')}
       title={t('schedule.title')}
       footer={
-        <PrimaryButton
-          label={t('common.continue')}
-          onPress={() => {
-            saveDraft();
-            navigation.navigate('SetupArea');
-          }}
-        />
+        <PrimaryButton label={t('common.continue')} onPress={onContinue} loading={busy} />
       }
     >
       <View style={[styles.days, { flexDirection: row }]}>
-        {DAYS.map(day => {
-          const selected = form.days.includes(day.id);
+        {DAYS.map((day, dayOfWeek) => {
+          const selected = form.days.includes(dayOfWeek);
           return (
             <TouchableOpacity
               key={day.id}
               activeOpacity={0.8}
               accessibilityRole="button"
               accessibilityState={{ selected }}
-              onPress={() => update({ days: toggleItem(form.days, day.id) })}
+              onPress={() => update({ days: toggleItem(form.days, dayOfWeek) })}
               style={[styles.day, selected && styles.daySelected]}
             >
               <T weight="medium" style={[styles.dayLabel, selected && styles.dayLabelSelected]}>

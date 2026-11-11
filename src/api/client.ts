@@ -26,21 +26,27 @@ async function refreshAccessToken(): Promise<string> {
   if (!current) {
     throw new Error('No session');
   }
-  const response = await axios.post<Tokens & { expiresIn: number }>(
+  // This answer is not wrapped in `data`.
+  const response = await axios.post<Partial<Tokens> & { data?: Partial<Tokens> }>(
     `${API_BASE_URL}/api/auth/refresh`,
     { refreshToken: current.refreshToken },
     { timeout: REQUEST_TIMEOUT_MS },
   );
+  const fresh = response.data.data ?? response.data;
+  if (!fresh.accessToken || !fresh.refreshToken) {
+    throw new Error('Refresh answered without tokens');
+  }
   // The user may have logged out while this was in flight; don't bring the session back.
   if (session?.getTokens()?.refreshToken !== current.refreshToken) {
     throw new Error('Session changed during refresh');
   }
-  const { accessToken, refreshToken } = response.data;
-  session.onRefreshed({ accessToken, refreshToken });
-  return accessToken;
+  session.onRefreshed({ accessToken: fresh.accessToken, refreshToken: fresh.refreshToken });
+  return fresh.accessToken;
 }
 
-const isAuthPath = (url?: string) => !!url && url.includes('/auth/');
+// Sign-in calls and the token calls themselves must never trigger a refresh.
+const NO_REFRESH = ['/api/auth/refresh', '/api/auth/logout', '/api/business/auth/'];
+const skipsRefresh = (url?: string) => !!url && NO_REFRESH.some(path => url.includes(path));
 
 const sessionRejected = (error: unknown) =>
   axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403);
@@ -54,14 +60,21 @@ http.interceptors.request.use(config => {
 });
 
 http.interceptors.response.use(
-  response => response,
+  response => {
+    // Successful answers are `{ success: true, data }`; callers only want `data`.
+    const body = response.data as { success?: boolean; data?: unknown } | undefined;
+    if (body && typeof body === 'object' && body.success === true && 'data' in body) {
+      response.data = body.data;
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const original = error.config as Retriable | undefined;
     if (
       error.response?.status !== 401 ||
       !original ||
       original._retried ||
-      isAuthPath(original.url) ||
+      skipsRefresh(original.url) ||
       !session?.getTokens()
     ) {
       throw error;

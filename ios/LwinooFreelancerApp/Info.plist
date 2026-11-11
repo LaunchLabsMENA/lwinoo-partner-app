@@ -37,7 +37,9 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Take photos of your profile and documents for your partner application.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string>Your location places the pin for your business and the area you serve.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save photos you take for your business profile and services.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose photos of your profile and documents for your partner application.</string>
 	<key>RCTNewArchEnabled</key>

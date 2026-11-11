@@ -1,5 +1,8 @@
 import React, { FC, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { errorMessage } from '../../api/errors';
+import { useLoadCatalog, useLocalName } from '../../components/catalog';
+import { CountryPhoneInput } from '../../components/country-phone-input';
 import { CameraIcon, PlusIcon, ShieldIcon } from '../../components/icons';
 import { PickedImage, usePhotoPicker } from '../../components/photo-picker';
 import { SetupScaffold } from '../../components/setup-scaffold';
@@ -7,78 +10,113 @@ import {
   Chip,
   FieldLabel,
   LabeledInput,
-  PhoneInput,
   PrimaryButton,
   SelectField,
   T,
 } from '../../components/ui';
-import { ADDRESSES, CITIES, SERVICE_CATEGORIES, TEAM_SIZES } from '../../data/setup';
-import { errorMessage } from '../../api/errors';
+import { fileSource, UPLOAD_BASE_URL } from '../../config';
+import { COUNTRIES, DEFAULT_COUNTRY } from '../../data/countries';
+import { CITIES, TEAM_SIZES } from '../../data/setup';
 import { useLanguage } from '../../i18n';
+import { TKey } from '../../i18n/translations';
 import { useAppNavigation } from '../../navigation/types';
-import { toggleItem, useSetup } from '../../state/setup';
-import { useDraftSync } from '../../state/use-draft';
+import { toggleItem, useCategories, usePartnerType, useSetup } from '../../state/setup';
+import { useStepRunner } from '../../state/use-step';
 import { useAppDispatch } from '../../store/hooks';
-import { uploadPicture } from '../../store/thunks';
+import { saveProfile, uploadFile } from '../../store/thunks';
 import { COLORS } from '../../theme';
+import { toE164 } from '../../utils/phone';
 
 export const ProfileScreen: FC = () => {
   const navigation = useAppNavigation();
-  const saveDraft = useDraftSync();
   const { t, row } = useLanguage();
   const { form, update } = useSetup();
   const pickPhoto = usePhotoPicker();
   const dispatch = useAppDispatch();
-  const [busy, setBusy] = useState<'photo' | 'cover' | null>(null);
-  const [failure, setFailure] = useState('');
+  const categories = useCategories();
+  const localName = useLocalName();
+  const partnerType = usePartnerType();
+  const { busy, failure, setFailure, run } = useStepRunner();
+  const [uploading, setUploading] = useState<'logo' | 'cover' | null>(null);
+  useLoadCatalog();
 
-  const upload = async (purpose: 'photo' | 'cover', picked: PickedImage) => {
-    setBusy(purpose);
+  const phoneCountry =
+    COUNTRIES.find(item => item.iso === form.phoneCountry) ?? DEFAULT_COUNTRY;
+  const needsCr = !!partnerType?.requiredDocuments.includes('COMMERCIAL_REGISTRATION');
+  const needsCategories = partnerType?.requiresCategories ?? true;
+
+  const upload = async (slot: 'logo' | 'cover', picked: PickedImage) => {
+    setUploading(slot);
     try {
-      const url = await dispatch(uploadPicture({ ...picked, purpose })).unwrap();
-      update(purpose === 'photo' ? { photoUrl: url } : { coverUrl: url });
+      const file = await dispatch(
+        uploadFile({ file: picked, purpose: 'photo', baseUrl: UPLOAD_BASE_URL }),
+      ).unwrap();
+      update(
+        slot === 'logo'
+          ? { logoFileId: file.fileId, logoUrl: file.url }
+          : { coverFileId: file.fileId, coverUrl: file.url },
+      );
     } catch (problem) {
       setFailure(errorMessage(problem, t));
     } finally {
-      setBusy(null);
+      setUploading(null);
     }
   };
 
-  const choose = (purpose: 'photo' | 'cover') => {
-    if (busy) {
+  const choose = (slot: 'logo' | 'cover') => {
+    if (uploading) {
       return;
     }
     setFailure('');
-    pickPhoto(picked => upload(purpose, picked));
+    pickPhoto(picked => upload(slot, picked));
   };
+
+  const missing = (): TKey | null => {
+    if (form.ownerName.trim().length < 2) return 'profile.owner';
+    if (form.businessName.trim().length < 2) return 'profile.business';
+    if (!toE164(form.phone, phoneCountry)) return 'profile.phone';
+    if (needsCategories && !form.categoryIds.length) return 'profile.services';
+    if (!form.city) return 'profile.city';
+    if (!form.street.trim()) return 'profile.street';
+    if (needsCr && !/^\d{10}$/.test(form.crNumber.trim())) return 'profile.cr';
+    return null;
+  };
+
+  const onContinue = () => {
+    const field = missing();
+    if (field) {
+      setFailure(t('setup.error.required', { field: t(field) }));
+      return;
+    }
+    run(
+      () => dispatch(saveProfile()).unwrap(),
+      () => navigation.navigate('SetupSchedule'),
+    );
+  };
+
+  const logo = fileSource(form.logoUrl);
+  const cover = fileSource(form.coverUrl);
 
   return (
     <SetupScaffold
       step={2}
+      error={failure}
       header={t('profile.header')}
       title={t('profile.title')}
-      footer={
-        <PrimaryButton
-          label={t('common.continue')}
-          onPress={() => {
-            saveDraft();
-            navigation.navigate('SetupSchedule');
-          }}
-        />
-      }
+      footer={<PrimaryButton label={t('common.continue')} onPress={onContinue} loading={busy} />}
     >
       <View style={styles.center}>
         <TouchableOpacity
           activeOpacity={0.8}
           accessibilityRole="button"
           accessibilityLabel={t('profile.addPhoto')}
-          onPress={() => choose('photo')}
-          style={[styles.photo, form.photoUrl && styles.pictureAdded]}
+          onPress={() => choose('logo')}
+          style={[styles.photo, logo && styles.pictureAdded]}
         >
-          {busy === 'photo' ? (
+          {uploading === 'logo' ? (
             <ActivityIndicator color={COLORS.rose} />
-          ) : form.photoUrl ? (
-            <Image source={{ uri: form.photoUrl }} style={styles.photoImage} />
+          ) : logo ? (
+            <Image source={logo} style={styles.photoImage} />
           ) : (
             <CameraIcon size={30} />
           )}
@@ -99,24 +137,22 @@ export const ProfileScreen: FC = () => {
         onPress={() => choose('cover')}
         style={[styles.coverRow, { flexDirection: row }]}
       >
-        <View style={[styles.coverCircle, form.coverUrl && styles.pictureAdded]}>
-          {busy === 'cover' ? (
+        <View style={[styles.coverCircle, cover && styles.pictureAdded]}>
+          {uploading === 'cover' ? (
             <ActivityIndicator color={COLORS.rose} />
-          ) : form.coverUrl ? (
-            <Image source={{ uri: form.coverUrl }} style={styles.coverImage} />
+          ) : cover ? (
+            <Image source={cover} style={styles.coverImage} />
           ) : (
             <CameraIcon />
           )}
         </View>
         <View style={styles.flex}>
           <T weight="medium" style={styles.coverTitle}>
-            {t(form.coverUrl ? 'profile.coverAdded' : 'profile.coverTitle')}
+            {t(cover ? 'profile.coverAdded' : 'profile.coverTitle')}
           </T>
           <T style={styles.coverHint}>{t('profile.coverHint')}</T>
         </View>
       </TouchableOpacity>
-
-      {failure ? <T style={styles.failure}>{failure}</T> : null}
 
       <LabeledInput
         label={t('profile.owner')}
@@ -145,19 +181,37 @@ export const ProfileScreen: FC = () => {
 
       <View style={styles.section}>
         <FieldLabel>{t('profile.phone')}</FieldLabel>
-        <PhoneInput value={form.phone} onChangeText={phone => update({ phone })} />
+        <CountryPhoneInput
+          country={phoneCountry}
+          onCountryChange={next => update({ phoneCountry: next.iso })}
+          value={form.phone}
+          onChangeText={phone => update({ phone })}
+        />
       </View>
 
+      {needsCr ? (
+        <LabeledInput
+          label={t('profile.cr')}
+          placeholder="1010123456"
+          value={form.crNumber}
+          onChangeText={crNumber => update({ crNumber: crNumber.replace(/\D/g, '') })}
+          keyboardType="number-pad"
+          maxLength={10}
+        />
+      ) : null}
+
       <View style={styles.section}>
-        <FieldLabel>{t('profile.services')}</FieldLabel>
+        <FieldLabel>
+          {needsCategories ? t('profile.services') : `${t('profile.services')} ${t('profile.optional')}`}
+        </FieldLabel>
         <View style={[styles.grid, { flexDirection: row }]}>
-          {SERVICE_CATEGORIES.map((category, index) => (
+          {categories.map(category => (
             <Chip
               key={category.id}
-              label={t(category.label)}
-              selected={form.services.includes(category.id)}
-              onPress={() => update({ services: toggleItem(form.services, category.id) })}
-              style={index === SERVICE_CATEGORIES.length - 1 ? styles.fullChip : styles.halfChip}
+              label={localName(category)}
+              selected={form.categoryIds.includes(category.id)}
+              onPress={() => update({ categoryIds: toggleItem(form.categoryIds, category.id) })}
+              style={styles.halfChip}
             />
           ))}
         </View>
@@ -167,15 +221,22 @@ export const ProfileScreen: FC = () => {
         label={t('profile.city')}
         placeholder={t('profile.cityPlaceholder')}
         value={form.city}
-        options={CITIES.map(city => ({ id: city.id, label: t(city.label) }))}
+        options={CITIES.map(city => ({ id: city.name, label: t(city.label) }))}
         onChange={city => update({ city })}
       />
-      <SelectField
-        label={t('profile.address')}
-        placeholder={t('profile.addressPlaceholder')}
-        value={form.address}
-        options={ADDRESSES.map(address => ({ id: address.id, label: t(address.label) }))}
-        onChange={address => update({ address })}
+      <LabeledInput
+        label={`${t('profile.district')} ${t('profile.optional')}`}
+        placeholder={t('profile.districtPlaceholder')}
+        value={form.district}
+        onChangeText={district => update({ district })}
+        maxLength={120}
+      />
+      <LabeledInput
+        label={t('profile.street')}
+        placeholder={t('profile.streetPlaceholder')}
+        value={form.street}
+        onChangeText={street => update({ street })}
+        maxLength={160}
       />
 
       <View style={styles.section}>
@@ -183,10 +244,10 @@ export const ProfileScreen: FC = () => {
         <View style={[styles.teamRow, { flexDirection: row }]}>
           {TEAM_SIZES.map(size => (
             <Chip
-              key={size}
-              label={size}
-              selected={form.team === size}
-              onPress={() => update({ team: size })}
+              key={size.value}
+              label={size.label}
+              selected={form.team === size.value}
+              onPress={() => update({ team: size.value })}
               style={styles.flex}
             />
           ))}
@@ -231,7 +292,6 @@ const styles = StyleSheet.create({
   },
   photoHint: { fontSize: 12, color: COLORS.muted, marginTop: 12, textAlign: 'center' },
   optional: { fontSize: 12, color: COLORS.placeholder },
-  failure: { fontSize: 12, color: COLORS.error, marginTop: 10 },
   coverRow: { alignItems: 'center', gap: 14 },
   coverCircle: {
     width: 72,
@@ -249,7 +309,6 @@ const styles = StyleSheet.create({
   section: { marginTop: 14 },
   grid: { flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 },
   halfChip: { width: '48.5%' },
-  fullChip: { width: '100%' },
   teamRow: { gap: 10 },
   privacyRow: { alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 20 },
   privacy: { fontSize: 11, color: COLORS.muted, flexShrink: 1 },

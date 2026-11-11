@@ -1,7 +1,10 @@
 import React, { FC, ReactNode } from 'react';
 import { Image, ScrollView, StyleSheet, TextInputProps, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { fileUrl } from '../config';
 import { PARTNER_AVATAR } from '../data/portal';
+import { useBusinessSetup } from '../state/setup';
+import { useAppSelector } from '../store/hooks';
 import { useLanguage } from '../i18n';
 import { COLORS } from '../theme';
 import { ChevronDownIcon, PinIcon, SearchIcon, SparkleIcon } from './icons';
@@ -58,16 +61,21 @@ export const SmallButton: FC<{ label: string; onPress: () => void }> = ({ label,
 export const PartnerIdentity: FC<{ inverted?: boolean }> = ({ inverted }) => {
   const { t, row } = useLanguage();
   const comingSoon = useComingSoon();
+  const business = useBusinessSetup()?.business;
+  const summaryName = useAppSelector(state => state.session.account?.business?.name);
+  const name = business?.name ?? summaryName ?? t('portal.partnerName');
+  const place = [business?.district, business?.city].filter(Boolean).join(', ');
+  const logo = fileUrl(business?.logoUrl);
   const nameColor = inverted ? COLORS.white : COLORS.espresso;
   const metaColor = inverted ? COLORS.roseSoft : COLORS.muted;
 
   return (
     <View style={[styles.identity, { flexDirection: row }]}>
-      <Image source={PARTNER_AVATAR} style={styles.avatar} />
+      <Image source={logo ? { uri: logo } : PARTNER_AVATAR} style={styles.avatar} />
       <View style={styles.flex}>
         <View style={[styles.line, { flexDirection: row }]}>
           <T weight="semibold" style={[styles.name, { color: nameColor }]}>
-            {t('portal.partnerName')}
+            {name}
           </T>
           <SparkleIcon />
         </View>
@@ -77,7 +85,7 @@ export const PartnerIdentity: FC<{ inverted?: boolean }> = ({ inverted }) => {
           style={[styles.line, styles.location, { flexDirection: row }]}
         >
           <PinIcon size={13} color={inverted ? COLORS.roseSoft : COLORS.rose} />
-          <T style={[styles.locationText, { color: metaColor }]}>{t('portal.partnerLocation')}</T>
+          <T style={[styles.locationText, { color: metaColor }]}>{place || t('portal.partnerLocation')}</T>
           <ChevronDownIcon size={12} color={metaColor} />
         </TouchableOpacity>
       </View>

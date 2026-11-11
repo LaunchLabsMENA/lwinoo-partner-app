@@ -20,9 +20,10 @@ const ALERT_AFTER_DIALOG_MS = 500;
 
 const showAfterDialog = (show: () => void) => setTimeout(show, ALERT_AFTER_DIALOG_MS);
 
-export type PickedImage = { uri: string; type: string };
+export type PickedImage = { uri: string; type: string; name: string };
 
-const UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+// The API takes JPG and PNG; the picker converts other formats to JPG.
+const UPLOAD_TYPES = ['image/jpeg', 'image/png'];
 
 type OnPicked = (image: PickedImage) => void;
 
@@ -56,6 +57,7 @@ export const usePhotoPicker = () => {
     onPicked({
       uri: asset.uri,
       type: asset.type && UPLOAD_TYPES.includes(asset.type) ? asset.type : 'image/jpeg',
+      name: asset.fileName ?? `photo-${Date.now()}.jpg`,
     });
   };
 

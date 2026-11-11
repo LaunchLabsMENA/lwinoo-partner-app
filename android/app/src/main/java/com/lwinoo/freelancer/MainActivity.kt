@@ -1,6 +1,8 @@
 package com.lwinoo.freelancer
 
 import android.os.Bundle
+import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
@@ -13,6 +15,26 @@ class MainActivity : ReactActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     supportFragmentManager.fragmentFactory = RNScreensFragmentFactory()
     super.onCreate(savedInstanceState)
+    keepLaunchScreenUntilReactDraws()
+  }
+
+  /**
+   * The theme's window background is the launch screen. Once React has added its first view, swap
+   * it for the plain app colour so it can't show through behind the keyboard or screen transitions.
+   */
+  private fun keepLaunchScreenUntilReactDraws() {
+    val content = findViewById<ViewGroup>(android.R.id.content)
+    content.viewTreeObserver.addOnPreDrawListener(
+        object : ViewTreeObserver.OnPreDrawListener {
+          override fun onPreDraw(): Boolean {
+            val reactRoot = content.getChildAt(0) as? ViewGroup
+            if (reactRoot != null && reactRoot.childCount > 0) {
+              content.viewTreeObserver.removeOnPreDrawListener(this)
+              window.setBackgroundDrawableResource(R.color.app_background)
+            }
+            return true
+          }
+        })
   }
 
   /**

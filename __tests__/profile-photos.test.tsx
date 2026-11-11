@@ -24,8 +24,12 @@ jest.mock(
   () => require('react-native-safe-area-context/jest/mock').default,
 );
 
-jest.mock('../src/api/partner', () => ({
-  uploadFile: jest.fn(async (_uri: string, _type: string, purpose: string) => `https://cdn.test/${purpose}.jpg`),
+let mockUploads = 0;
+jest.mock('../src/api/business', () => ({
+  uploadFile: jest.fn(async (_file: unknown, _purpose: string, baseUrl?: string) => {
+    mockUploads += 1;
+    return { fileId: `f${mockUploads}`, url: `${baseUrl}/api/files/f${mockUploads}` };
+  }),
 }));
 
 jest.mock('react-native-image-picker', () => ({
@@ -78,7 +82,10 @@ test('profile photo and cover each show the picture chosen from the library', as
   await press(root, 'Cover picture');
   await chooseOption(1);
 
-  expect(imageUris(root)).toEqual(['https://cdn.test/photo.jpg', 'https://cdn.test/cover.jpg']);
+  expect(imageUris(root)).toEqual([
+    'https://moisture-granola-underwent.ngrok-free.dev/api/files/f1',
+    'https://moisture-granola-underwent.ngrok-free.dev/api/files/f2',
+  ]);
   await ReactTestRenderer.act(async () => root.unmount());
 });
 
